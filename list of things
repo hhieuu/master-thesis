@@ -1,0 +1,10 @@
+Things have done:
+- Preparing data, variables
+- Trial estimation using LASSO
+
+To work on:
+- Adaptive LASSO? for Oracle properties
+- How to optimize for lambda? CV?
+- Inference
+- Estimation periods?
+- ADF tests probably?
