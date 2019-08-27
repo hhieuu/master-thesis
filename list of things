@@ -1,0 +1,19 @@
+**** 27.08.2019
+Things have done:
+- Preparing data, variables
+- Trial estimation using LASSO
+
+To work on:
+- Adaptive LASSO? for Oracle properties
+- How to optimize for lambda? CV?
+- Inference
+- Estimation periods?
+- ADF tests probably?
+
+**** 28.08.2019
+To do:
+- Figure out how to CV glmnet
+- Test for stationarity in all TS?
+- Make TS stationary?
+- Then the problem of near-collinear/near-singular regression arise?
+- Adaptive LASSO needs to be worked on. How to do adaptive LASSO?
