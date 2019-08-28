@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 **** 27.08.2019
+=======
+>>>>>>> f14612f692bd01131ad96132172c0f186f188115
 Things have done:
 - Preparing data, variables
 - Trial estimation using LASSO
@@ -8,6 +11,7 @@ To work on:
 - How to optimize for lambda? CV?
 - Inference
 - Estimation periods?
+<<<<<<< HEAD
 - ADF tests probably?
 
 **** 28.08.2019
@@ -17,3 +21,6 @@ To do:
 - Make TS stationary?
 - Then the problem of near-collinear/near-singular regression arise?
 - Adaptive LASSO needs to be worked on. How to do adaptive LASSO?
+=======
+- ADF tests probably?
+>>>>>>> f14612f692bd01131ad96132172c0f186f188115

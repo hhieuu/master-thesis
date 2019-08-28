@@ -64,10 +64,17 @@ lambda.epsilon <- .0001 # fraction of lambda max to be lambda min
 lambda.n <- 100 # length of lambda path
 lambda.path <- round(exp(seq(log(lambda.max), log(lambda.max*lambda.epsilon), 
                              length.out = lambda.n)), digits = 10)
+<<<<<<< HEAD
 
 ## Fitting LASSO
 fit.lasso <- glmnet(var.all, var.premium, lambda = lambda.path)
 plot.glmnet(fit.lasso, 'lambda')
+=======
+
+## Fitting LASSO
+
+fit.lasso <- glmnet(var.all, var.premium, lambda = lambda.path)
+>>>>>>> f14612f692bd01131ad96132172c0f186f188115
 plot.glmnet(fit.lasso, 'dev')
 
 
