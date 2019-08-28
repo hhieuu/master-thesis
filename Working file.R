@@ -4,13 +4,17 @@
 # install.packages('zoo')
 # install.packages('glmnet')
 # install.packages('tseries')
-# 
-# ## Call package
+# install.packages('caret') 
+# install.packages('Matrix')
+
+# ## Call packages
 # library('readxl')
 # library('zoo')
 # library('glmnet')
 # library('Matrix')
 # library('tseries')
+# library('caret')
+# library('Matrix')
 
 ### Import and clean Data
 data.original <- read_excel("PredictorData2018.xlsx")
@@ -51,6 +55,11 @@ var.infl <- data$infl # inflation from Consumer Price Index, 1919 to 2005
 var.all <- cbind(var.dp, var.dy, var.ep, var.de, var.svar, var.bm, var.ntis, var.tbl,
                         var.lty, var.ltr, var.tms, var.dfy, var.dfr, var.infl) # design matrix of all regressors
 
+## Testing for stationarity using ADF test
+adf.pval.premium <- adf.test(var.premium, 'stationary')
+adf.pval.all <- apply(var.all, 2, function(x) adf.test(x, 'stationary')$p.value)
+# --> Test result is quite promising, as the null of unit root is rejected in 11/14 variables
+
 ### Performing LASSO
 ## Preparing lambda path
 # scale variables (normalize)
@@ -70,5 +79,9 @@ fit.lasso <- glmnet(var.all, var.premium, lambda = lambda.path)
 plot.glmnet(fit.lasso, 'lambda')
 plot.glmnet(fit.lasso, 'dev')
 
+cv.timeslice <- createTimeSlices(var.premium, initialWindow = 500) # Time slice index for cross validation
+which.min(predict.glmnet(glmnet(var.all[cv.timeslice$train$Training0500,], var.premium[cv.timeslice$train$Training0500],
+               lambda = lambda.path), Matrix(var.all[cv.timeslice$test$Testing0500, ], nrow = 1)) 
+    - var.premium[cv.timeslice$test$Testing0500])
 
-
+##
