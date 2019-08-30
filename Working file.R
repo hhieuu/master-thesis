@@ -6,6 +6,7 @@
 # install.packages('tseries')
 # install.packages('caret') 
 # install.packages('Matrix')
+# install.packages('corrplot')
 
 # ## Call packages
 # library('readxl')
@@ -15,6 +16,7 @@
 # library('tseries')
 # library('caret')
 # library('Matrix')
+# library('corrplot')
 
 ### Import and clean Data
 data.original <- read_excel("PredictorData2018.xlsx")
@@ -59,6 +61,15 @@ var.all <- cbind(var.dp, var.dy, var.ep, var.de, var.svar, var.bm, var.ntis, var
 adf.pval.premium <- adf.test(var.premium, 'stationary')
 adf.pval.all <- apply(var.all, 2, function(x) adf.test(x, 'stationary')$p.value)
 # --> Test result is quite promising, as the null of unit root is rejected in 11/14 variables
+
+
+## Detecting collinearity
+fit.ols <- lm(var.premium ~ var.all)
+summary(fit.ols)
+# -> as expected from variable construction, var.de and var.tms is perfectly collinear with other variables
+# -> some other variables exhibit high correlation as well, demonstrated in correlogram:
+corrplot(cor(var.all), 'number')
+# This will, together with LASSO's problems, further invalidate 'standard' inference
 
 ### Performing LASSO
 ## Preparing lambda path
