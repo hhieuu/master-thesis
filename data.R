@@ -1,17 +1,3 @@
-#### Main working file
-# ## Package installation
-# install.packages('readxl')
-# install.packages('zoo')
-# install.packages('glmnet')
-# install.packages('tseries')
-# 
-# ## Call package
-# library('readxl')
-# library('zoo')
-# library('glmnet')
-# library('Matrix')
-# library('tseries')
-
 ### Import and clean Data
 data.original <- read_excel("PredictorData2018.xlsx")
 
@@ -28,9 +14,12 @@ for (i in 2:length(data)) {
 }
 
 ### Preparing variables
+# Dependent Var
 var.premium <- data$CRSP_SPvw - data$Rfree
 var.premium.stdrd <- scale(var.premium)
 n.obs <- length(var.premium)
+
+# Regressors
 var.dp <- log(data$D12) - log(data$Index) # d/p ratio
 var.dy <- log(data$D12) - log(c(data$Index[-1], data$Index[n.obs])) # d/y ratio
 var.ep <- log(data$E12) - log(data$Index) # e/p ratio
@@ -49,6 +38,7 @@ var.dfr <- data$corpr - data$ltr # default return spread
 var.infl <- data$infl # inflation from Consumer Price Index, 1919 to 2005
 # var.ik # 
 var.all <- cbind(var.dp, var.dy, var.ep, var.de, var.svar, var.bm, var.ntis, var.tbl,
+<<<<<<< HEAD:Working file.R
                         var.lty, var.ltr, var.tms, var.dfy, var.dfr, var.infl) # design matrix of all regressors
 
 ### Performing LASSO
@@ -79,3 +69,6 @@ plot.glmnet(fit.lasso, 'dev')
 
 
 
+=======
+                 var.lty, var.ltr, var.tms, var.dfy, var.dfr, var.infl) # design matrix of all regressors
+>>>>>>> stationarity_near-singular-regression:data.R
