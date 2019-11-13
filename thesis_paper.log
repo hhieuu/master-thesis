@@ -1,0 +1,300 @@
+This is pdfTeX, Version 3.14159265-2.6-1.40.19 (MiKTeX 2.9.6840 64-bit) (preloaded format=latex 2018.11.15)  17 OCT 2019 14:29
+entering extended mode
+**./thesis_paper.tex
+(thesis_paper.tex
+LaTeX2e <2018-04-01> patch level 5
+("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\latex\base\article.cls"
+Document Class: article 2014/09/29 v1.4h Standard LaTeX document class
+("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\latex\base\size12.clo"
+File: size12.clo 2014/09/29 v1.4h Standard LaTeX file (size option)
+)
+\c@part=\count80
+\c@section=\count81
+\c@subsection=\count82
+\c@subsubsection=\count83
+\c@paragraph=\count84
+\c@subparagraph=\count85
+\c@figure=\count86
+\c@table=\count87
+\abovecaptionskip=\skip41
+\belowcaptionskip=\skip42
+\bibindent=\dimen102
+) ("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\latex\natbib\natbib.st
+y"
+Package: natbib 2010/09/13 8.31b (PWD, AO)
+\bibhang=\skip43
+\bibsep=\skip44
+LaTeX Info: Redefining \cite on input line 694.
+\c@NAT@ctr=\count88
+)
+("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\latex\amsmath\amsmath.st
+y"
+Package: amsmath 2017/09/02 v2.17a AMS math features
+\@mathmargin=\skip45
+
+For additional information on amsmath, use the `?' option.
+
+("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\latex\amsmath\amstext.st
+y"
+Package: amstext 2000/06/29 v2.01 AMS text
+
+("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\latex\amsmath\amsgen.sty
+"
+File: amsgen.sty 1999/11/30 v2.0 generic functions
+\@emptytoks=\toks14
+\ex@=\dimen103
+))
+("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\latex\amsmath\amsbsy.sty
+"
+Package: amsbsy 1999/11/29 v1.2d Bold Symbols
+\pmbraise@=\dimen104
+)
+("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\latex\amsmath\amsopn.sty
+"
+Package: amsopn 2016/03/08 v2.02 operator names
+)
+\inf@bad=\count89
+LaTeX Info: Redefining \frac on input line 213.
+\uproot@=\count90
+\leftroot@=\count91
+LaTeX Info: Redefining \overline on input line 375.
+\classnum@=\count92
+\DOTSCASE@=\count93
+LaTeX Info: Redefining \ldots on input line 472.
+LaTeX Info: Redefining \dots on input line 475.
+LaTeX Info: Redefining \cdots on input line 596.
+\Mathstrutbox@=\box26
+\strutbox@=\box27
+\big@size=\dimen105
+LaTeX Font Info:    Redeclaring font encoding OML on input line 712.
+LaTeX Font Info:    Redeclaring font encoding OMS on input line 713.
+\macc@depth=\count94
+\c@MaxMatrixCols=\count95
+\dotsspace@=\muskip10
+\c@parentequation=\count96
+\dspbrk@lvl=\count97
+\tag@help=\toks15
+\row@=\count98
+\column@=\count99
+\maxfields@=\count100
+\andhelp@=\toks16
+\eqnshift@=\dimen106
+\alignsep@=\dimen107
+\tagshift@=\dimen108
+\tagwidth@=\dimen109
+\totwidth@=\dimen110
+\lineht@=\dimen111
+\@envbody=\toks17
+\multlinegap=\skip46
+\multlinetaggap=\skip47
+\mathdisplay@stack=\toks18
+LaTeX Info: Redefining \[ on input line 2817.
+LaTeX Info: Redefining \] on input line 2818.
+)
+("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\latex\amsfonts\amssymb.s
+ty"
+Package: amssymb 2013/01/14 v3.01 AMS font symbols
+
+("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\latex\amsfonts\amsfonts.
+sty"
+Package: amsfonts 2013/01/14 v3.01 Basic AMSFonts support
+\symAMSa=\mathgroup4
+\symAMSb=\mathgroup5
+LaTeX Font Info:    Overwriting math alphabet `\mathfrak' in version `bold'
+(Font)                  U/euf/m/n --> U/euf/b/n on input line 106.
+))
+("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\latex\graphics\graphicx.
+sty"
+Package: graphicx 2017/06/01 v1.1a Enhanced LaTeX Graphics (DPC,SPQR)
+
+("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\latex\graphics\keyval.st
+y"
+Package: keyval 2014/10/28 v1.15 key=value parser (DPC)
+\KV@toks@=\toks19
+)
+("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\latex\graphics\graphics.
+sty"
+Package: graphics 2017/06/25 v1.2c Standard LaTeX Graphics (DPC,SPQR)
+
+("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\latex\graphics\trig.sty"
+Package: trig 2016/01/03 v1.10 sin cos tan (DPC)
+)
+("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\latex\graphics-cfg\graph
+ics.cfg"
+File: graphics.cfg 2016/06/04 v1.11 sample graphics configuration
+)
+Package graphics Info: Driver file: dvips.def on input line 99.
+
+("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\latex\graphics-def\dvips
+.def"
+File: dvips.def 2017/06/20 v3.1d Graphics/color driver for dvips
+))
+\Gin@req@height=\dimen112
+\Gin@req@width=\dimen113
+)
+("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\latex\caption\caption.st
+y"
+Package: caption 2018/10/06 v3.3-154 Customizing captions (AR)
+
+("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\latex\caption\caption3.s
+ty"
+Package: caption3 2018/09/12 v1.8c caption3 kernel (AR)
+Package caption3 Info: TeX engine: e-TeX on input line 64.
+\captionmargin=\dimen114
+\captionmargin@=\dimen115
+\captionwidth=\dimen116
+\caption@tempdima=\dimen117
+\caption@indent=\dimen118
+\caption@parindent=\dimen119
+\caption@hangindent=\dimen120
+)
+\c@caption@flags=\count101
+\c@ContinuedFloat=\count102
+)
+("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\latex\booktabs\booktabs.
+sty"
+Package: booktabs 2005/04/14 v1.61803 publication quality tables
+\heavyrulewidth=\dimen121
+\lightrulewidth=\dimen122
+\cmidrulewidth=\dimen123
+\belowrulesep=\dimen124
+\belowbottomsep=\dimen125
+\aboverulesep=\dimen126
+\abovetopsep=\dimen127
+\cmidrulesep=\dimen128
+\cmidrulekern=\dimen129
+\defaultaddspace=\dimen130
+\@cmidla=\count103
+\@cmidlb=\count104
+\@aboverulesep=\dimen131
+\@belowrulesep=\dimen132
+\@thisruleclass=\count105
+\@lastruleclass=\count106
+\@thisrulewidth=\dimen133
+) ("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\latex\tools\bm.sty"
+Package: bm 2017/01/16 v1.2c Bold Symbol Support (DPC/FMi)
+\symboldoperators=\mathgroup6
+\symboldletters=\mathgroup7
+\symboldsymbols=\mathgroup8
+LaTeX Font Info:    Redeclaring math alphabet \mathbf on input line 141.
+LaTeX Info: Redefining \bm on input line 207.
+)
+("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\latex\listings\listings.
+sty"
+\lst@mode=\count107
+\lst@gtempboxa=\box28
+\lst@token=\toks20
+\lst@length=\count108
+\lst@currlwidth=\dimen134
+\lst@column=\count109
+\lst@pos=\count110
+\lst@lostspace=\dimen135
+\lst@width=\dimen136
+\lst@newlines=\count111
+\lst@lineno=\count112
+\lst@maxwidth=\dimen137
+
+("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\latex\listings\lstmisc.s
+ty"
+File: lstmisc.sty 2018/09/02 1.7 (Carsten Heinz)
+\c@lstnumber=\count113
+\lst@skipnumbers=\count114
+\lst@framebox=\box29
+)
+("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\latex\listings\listings.
+cfg"
+File: listings.cfg 2018/09/02 1.7 listings configuration
+))
+Package: listings 2018/09/02 1.7 (Carsten Heinz)
+
+("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\latex\tools\array.sty"
+Package: array 2018/04/30 v2.4h Tabular extension package (FMi)
+\col@sep=\dimen138
+\ar@mcellbox=\box30
+\extrarowheight=\dimen139
+\NC@list=\toks21
+\extratabsurround=\skip48
+\backup@length=\skip49
+\ar@cellbox=\box31
+)
+("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\generic\babel\babel.sty"
+Package: babel 2018/09/26 3.24 The Babel package
+("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\generic\babel\switch.def
+"
+File: switch.def 2018/09/26 3.24 Babel switching mechanism
+)
+*************************************
+* Local config file bblopts.cfg used
+*
+("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\latex\arabi\bblopts.cfg"
+File: bblopts.cfg 2005/09/08 v0.1 add Arabic and Farsi to "declared" options of
+ babel
+)
+("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\latex\babel-english\engl
+ish.ldf"
+Language: english 2017/06/06 v3.3r English support from the babel system
+
+("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\generic\babel\babel.def"
+File: babel.def 2018/09/26 3.24 Babel common definitions
+\babel@savecnt=\count115
+\U@D=\dimen140
+
+("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\generic\babel\txtbabel.d
+ef")
+\bbl@dirlevel=\count116
+)
+\l@canadian = a dialect from \language\l@american 
+\l@australian = a dialect from \language\l@british 
+\l@newzealand = a dialect from \language\l@british 
+))
+("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\latex\titling\titling.st
+y"
+Package: titling 2009/09/04 v2.1d maketitle typesetting
+\thanksmarkwidth=\skip50
+\thanksmargin=\skip51
+\droptitle=\skip52
+) (thesis_paper.aux)
+\openout1 = `thesis_paper.aux'.
+
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 24.
+LaTeX Font Info:    ... okay on input line 24.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 24.
+LaTeX Font Info:    ... okay on input line 24.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 24.
+LaTeX Font Info:    ... okay on input line 24.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 24.
+LaTeX Font Info:    ... okay on input line 24.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 24.
+LaTeX Font Info:    ... okay on input line 24.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 24.
+LaTeX Font Info:    ... okay on input line 24.
+Package caption Info: Begin \AtBeginDocument code.
+Package caption Info: listings package is loaded.
+Package caption Info: End \AtBeginDocument code.
+\c@lstlisting=\count117
+LaTeX Font Info:    Try loading font information for U+msa on input line 27.
+
+("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\latex\amsfonts\umsa.fd"
+File: umsa.fd 2013/01/14 v3.01 AMS symbols A
+)
+LaTeX Font Info:    Try loading font information for U+msb on input line 27.
+("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\latex\amsfonts\umsb.fd"
+File: umsb.fd 2013/01/14 v3.01 AMS symbols B
+) [1
+
+] (thesis_paper.toc)
+\tf@toc=\write3
+\openout3 = `thesis_paper.toc'.
+
+ [1] [2] [3] [4] [5] (thesis_paper.bbl [6] [7]) [8]
+(thesis_paper.aux) ) 
+Here is how much of TeX's memory you used:
+ 5139 strings out of 492971
+ 74970 string characters out of 3126619
+ 150428 words of memory out of 3000000
+ 8957 multiletter control sequences out of 15000+200000
+ 18274 words of font info for 67 fonts, out of 3000000 for 9000
+ 1141 hyphenation exceptions out of 8191
+ 36i,6n,38p,2014b,246s stack positions out of 5000i,500n,10000p,200000b,50000s
+
+Output written on thesis_paper.dvi (9 pages, 24112 bytes).

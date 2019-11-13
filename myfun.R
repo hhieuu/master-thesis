@@ -18,17 +18,33 @@ fun.mse <- function(y, y.hat){ # Calculating MSE, or MSPE
   return(mse)
 }
 
-fun.pred.lasso <- function(y.train, x.train, y.val, x.val, lambda, pen.factor = NULL){ # calculate mspe for given train set, validation set, lambda
+# fun.pred.lasso <- function(y.train, x.train, y.val, x.val, lambda, pen.factor = NULL){ # calculate mspe for given train set, validation set, lambda
+#   x.train <- Matrix(x.train)
+#   x.val <- Matrix(x.val)
+#   if (is.null(pen.factor)){
+#     pen.factor <- rep(1, ncol(x.train))
+#   }
+#   fit <- glmnet(x.train, y.train, lambda = lambda, penalty.factor = pen.factor)
+#   y.val.hat <- predict.glmnet(fit, x.val)
+#   mspe <- fun.mse(y.val, y.val.hat)
+#   return(mspe)
+# }
+
+fun.fit.lasso <- function(y.train, x.train, lambda, pen.factor = NULL){
   x.train <- Matrix(x.train)
-  x.val <- Matrix(x.val)
   if (is.null(pen.factor)){
     pen.factor <- rep(1, ncol(x.train))
   }
   fit <- glmnet(x.train, y.train, lambda = lambda, penalty.factor = pen.factor)
-  y.val.hat <- predict.glmnet(fit, x.val)
+  return(fit)
+}
+
+fun.pred.lasso <- function(y.val, x.val, fitted){ # calculate mspe for given fit, validation set, lambda
+  y.val.hat <- predict.glmnet(fitted, x.val)
   mspe <- fun.mse(y.val, y.val.hat)
   return(mspe)
 }
+
 
 fun.cv.lasso <- function(y, x, lambda, kf){ # bring it all to calculate k-fold CV mspe
   n.obs <- length(y)
@@ -43,7 +59,8 @@ fun.cv.lasso <- function(y, x, lambda, kf){ # bring it all to calculate k-fold C
     x.val <- x[cv.index$val[[i]], ]
     pen.factor <- (abs(coef(lm(y ~ x))[-1]))^-1
     pen.factor[which(is.na(pen.factor))] <- 1
-    mspe.mat[i] <- fun.pred.lasso(y.train, x.train, y.val, x.val, lambda, pen.factor = pen.factor)
+    fitted <- fun.fit.lasso(y.train, x.train, lambda, pen.factor = pen.factor)
+    mspe.mat[i] <- fun.pred.lasso(y.val, x.val, fitted)
   }
   cv.mspe <- mean(mspe.mat)
   return(cv.mspe)

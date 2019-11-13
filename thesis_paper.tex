@@ -1,0 +1,87 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage{natbib} % for bibliography Chicago style
+\usepackage{amsmath} % for math symbols
+\usepackage{amssymb} % some more math symbols
+\usepackage{graphicx}  % to attach graphics
+\usepackage[font=small]{caption} % to caption graphics
+\usepackage{booktabs} 
+\usepackage{bm} 
+\usepackage{listings}
+\usepackage{array} % package to center entries in table
+\newcolumntype{P}[1]{>{\centering\arraybackslash}p{#1}} % to center entries in table
+\newcolumntype{M}[1]{>{\centering\arraybackslash}m{#1}} % Vertical centering
+\setlength{\parskip}{1em}
+\newcommand{\forceindent}{\leavevmode{\parindent=2em\indent}} % force indent custom function
+\renewcommand{\thefigure}{\arabic{section}.\arabic{figure}} % Redefine the figure numbering
+\renewcommand{\thetable}{\arabic{section}.\arabic{figure}} % Redefine the table numbering
+\usepackage[english]{babel}
+\usepackage{titling} % Package for separated title page environment
+
+\graphicspath{ {./} }
+\author{Hieu Hoang}
+\title{Seminar in Statistics \\ Functional-Coefficients Autoregressive Model}
+
+\begin{document}
+\pagenumbering{gobble} % this is to supress numbering
+\begin{titlepage}
+	\maketitle
+	\begin{abstract}
+		In this paper, we discuss the details of a generalized class that contains the well-known Threshold Autoregressive and Exponential Autoregressive model. To demonstrate the robustness and predictive power of the model, two examples are examined.
+	\end{abstract}
+\end{titlepage}
+
+\pagenumbering{arabic} % Restart numbering
+\section*{Table of Contents}
+\tableofcontents
+\newpage
+
+\section{Introduction}
+Prediction of stock returns has always been an important subject in finance, since an accurate prediction can help investors decide the portions of safe and risky assets in their portfolios, generating optimal wealth for their clients and themselves. As a result, a large volume of literature has been dedicated to developing asset pricing theory and predictive statistical models. One of the most popular and long-standing bases in the realm of asset pricing is the efficient market hypothesis (EMH), summarized and popularized in \cite{fama1970efficient}. According to EMH, equity premium is constant and reflects all available information. Hence, market anomalies and historical average of premia are analyzed to forecast asset returns.
+
+On the other hand, financial econometricians focus on including relevant lagged financial and macroeconomic variables as predictors for equity premium as a way to exploit market inefficiency. \cite{fama1988dividend}, \cite{schiller1998valuation}, among others explored the power of using valuation ratios, e.g. dividend-price ratio, dividend yield, earnings-price, book-to-market ratio to forecast long-term returns of stock, while \cite{fama1990stock}, \cite{schwert1990stock}, and related papers showed correlation between bonds (treasury and corporate) and stock returns. As a result, a healthy number of literature demonstrated and cemented this idea, see, among \cite{hodrick1992dividend}, \cite{kothari1997book}, \cite{lamont1998earnings}, 
+\cite{pontiff1998book}.
+
+As of the late 1990s and early 2000s, the common consensus within the field is that excess stock returns can be predicted \citep{welch2008comprehensive}. However, along with new tools come new challenges. One of which is that the results of aforementioned findings may very well be spurious. \citep{stambaugh1999predictive} showed that when the innovation of a predictor is correlated with excess return, which is the case for many valuation ratios, the resulting estimated coefficient is biased and exhibits sharply different finite-sample properties from the standard case. One apparent example is the dividend yield which has the same return component with equity premium. A second source for spurious result stems from the high persistence of predictors. It has been well-known that a regression model with integrated or near-integrated predictors may sometimes produce 'non-sense correlation' where highly significant betas and high R-squared values are obtained while no "real" and meaningful correlation exists, except for the case of co-integrated series; see among \cite{yule1926we}, \cite{granger1974spurious}, \cite{phillips1986understanding}, \cite{granger2001spurious}, and \cite{engle1987co}. Last but not least, the problem of near-collinear predictors is also apparent for financial econometricians. As stated above, many highly persistent time series variables exhibit meaningless high cross-correlation scenario, but high correlation nonetheless. Furthermore, some ratios are by construction derived from other ratios or macroeconomic variables, hence the possible long-term co-movement between said ratios. This in turn causes the design matrix to become nearly singular (asymptotically singular), which produce estimation inconsistencies and failures in central limit theory in least square regression even in the case of stationary predictors and strong regression signal \citep{phillips2016inference}, much less for our case of high-persistence.
+
+For the reasons stated above, OLS may not be the best way to go. The late 1990s and early 2000s also witnessed a relatively new method for estimating linear models: the lasso \citep{tibshirani1996regression}. Instead of just minimizing the residual sum of squares, the lasso further applies a constraint to the sum of absolute values of estimated coefficients. This penalty term helps shrink coefficient estimates and at the same time encourages some variables to take on zero as coefficient, effectively eliminate them from the model. Thus, the lasso has the advantages of both (continuous) model selection and variance reduction by trading off some amount of bias, which may increase predictive performance. Belonging to the penalized least squared family of regression method, lasso also benefits from stability when there exist high collinearity between predictors by preventing coefficient inflation as in the case of its brother shrinkage variation, the ridge regression. Still, lasso suffers from a number of problems, mainly related to inference. Additionally, we still have the problem of near-singular design matrix and near-integrated and integrated series, potentially cointegrated in our hand.
+
+This paper will be organized as followed. This section gave an introduction to the paper. Next, I will review some literature regarding the problem of asymptotically degenerate design matrix, and how it makes OLS estimations invalid. An overview of lasso (and its variants) and how lasso can be used to combat our prevailing problems will also be discussed in this section. The third section will be about the technical details of Adaptive Lasso (henceforth alasso), with focus on the inference of coefficient estimates. The fourth section compares predictive performance of alasso with regular lasso, autoregressive of order 1, and OLS in simulation settings. Lastly, I will apply alasso to Goyal's data set used in \cite{welch2008comprehensive}, with updates until 2018, to assess its real-world predictive performance. Conclusion and extension will be given as closing thoughts.
+
+
+\section{Literature Review}
+In this section, I will first review a number of the literature that discusses our three big problems in the context of OLS regression: correlation between innovation of lagged predictor and regression disturbance; mixed roots, high persistence predictors; and near-singular design matrix. Next, we will take a look at how lasso-type regression, specifically alasso, can help alleviate parts of our problems.
+
+OLS, or ordinary least squares, is a long-standing powerhouse in the scene of linear regression. The objective of OLS is to find a set of coefficients that minimizes the squared differences between observed dependent variables and its predicted value. Thank to its readily available analytical solution, fast computation, and well-studied inference, it is widely used in both cross-sectional and time series data alike. However, there are a set of assumptions required to make the OLS estimates valid.
+--- Specifically, the stochastic processes involved must be stationary and ergodic. --- more precise here. reformulate, validity is not necessarily restricted to stationarity and ergodicity, more important is that the disturbances are uncorrelated to the regressors. ---
+However, evidences for stationarity of valuation ratios are mixed and shaky. \cite{roll2002rational} argues that under rational expectation, asset price is non-stationary due to its dependence on expectation of future quantities. Yet, metrics that are constructed as functions of price, e.g market-to-book, earning-price ratios, dividend yields may exhibit different root characteristics \citep{phillips2015halbert}. At the same time, most remaining series show high yet imprecisely determined degree of persistence, leading to the problem of mixed roots, possibly cointegrated, regression. \cite{phillips2015halbert} also discussed 'misbalancing' issue, where predicted variable and predictors have different memory type. The solution out is not straight-forward. \cite{elliott1994inference} discussed two common simple solutions: ignore the problem altogether, or determine the post-regression inference by pretesting predictors for unit roots. Both lead to the substantial over-rejection of the null of no significance. The solution proposed in the same paper involves Bayesian statistic, thus may not be appealing to some. In another approach, a local-to-unity autoregressive specification in the form of $ \rho = 1 + \frac{c}{n} $ is used to conduct asymptotic theory. However, the introduction of the unknown parameter brings more issues. Since localizing coefficient $c$ is not consistently estimable, asymptotic bias cannot be corrected, leading to nonstandard limit theory. \cite{phillips2013predictive} discussed $c$ and suggested possible solutions.
+
+Another violation of OLS assumptions comes in the form of high to perfect correlation between predictors. In the case of perfect correlation, removing regressor is a common remedy. When the correlation is not perfect, determinant(s) of design matrix gets into the vicinity of zero, causing computational difficulty in matrix inversion and inflated coefficient estimates. However, removing regressors is not always an preferable option since each regressor may contain some additional information that can improve the model fit or prediction. In the case of predicting excess returns, some predictors may contain information about market inefficiency despite high correlation due to a common variable in their construction. This kind of construction also leads to possible co-movement of predictors, causing singularity in the limit (near-singular design matrix). As variable frequency increases, singularity can come very quickly.
+--- A recent paper by \cite{phillips2016inference} dealt with this near-singularity in stationary regression. In the case of near-singular least squares, estimates are inconsistent and converge to random quantities dependent on the distribution of data through the input of error term and an unknown stationary component. --- Need edit, not suitable reference ---
+
+In this paper, I would like to introduce a relatively new method of estimation for linear model that has the ability to hopefully overcome some of the aforementioned issues. Proposed and discussed by \cite{tibshirani1996regression}, the lasso (least absolute shrinkage and selection operator) exhibits some more preferable properties than vanilla OLS.
+
+First, while shrinking coefficients introduces some bias, it helps to prevent estimate inflation in presence of high-collinearity. In fact, for the case of near-singular design, the lasso estimates are consistent, and with an appropriate choice for shrinkage parameter $ \lambda $, limiting distribution is normal \citep{knight2000asymptotics, knight2008shrinkage}. This result is especially handy for the case in this paper.
+
+Second, lasso can set some coefficients to zero, effectively performs continuous model selection. Via this mechanism, variance is reduced and hence accuracy may increase in the case of predictive regression. Continuous model selection has some advantages over discrete model selection, for example subset selection, where small change in data can lead to substantially different selection outcome, or be trapped in a local optimum \citep{breiman1995better}. Furthermore, as the number of regressors increases, discrete selection is computationally hard. On the other hand, continuous selection process is more stable, intepretable, and can scale easily with a large number of variables \citep{tibshirani1996regression}. However, plain-vanilla lasso is not always consistent in identifying the right subset of variables, and does not always exhibit 'oracle properties' (consistency in variable selection and asymptotic normality) \citep{meinshausen2004consistent, zou2006adaptive}. Hence, the adaptive lasso is proposed by \cite{zou2006adaptive}. Alasso assigns weights to each coefficients, and if the weights are cleverly chosen and data-driven, alasso can enjoys oracle properties. 
+
+Last but not least, the alasso works well in the case of mixed degree of persistence in predictive regression mentioned above. It can even adapt to system of predictors that exhibits cointegration by assigning appropriate penalty level inside the system without knowing the identity of these predictors. \cite{lee2018lasso} establishes and demonstrates a simple condition on $\lambda$ that leads alasso to oracle properties without knowing persistence level in advance.
+
+With all the favorable theory at hand, I will embark on testing the performance of alasso in both simulation and real data settings. But first, I will re-establish important results mentioned above in a more concrete manner.
+
+\section{The Adaptive Lasso}
+
+\section{Simulation study}
+
+\section{Application: Goyal's data set}
+
+\bibliographystyle{chicago}
+\bibliography{thesis_bib}
+
+\end{document}
+
+
+
+
+
+
+
