@@ -12,23 +12,19 @@ fun.ts.split <- function(y, k){ # create appropriate index for cross validation
   return(list(train = train, val = val))
 }
 
-fun.mse <- function(y, y.hat){ # Calculating MSE, or MSPE
+fun.train.test.split <- function(y, test.portion){ # Create trainset and test (hold-out) set
   n <- length(y)
-  mse <- 1/n*sum((y - y.hat)^2)
-  return(mse)
+  n.train <- floor(n - test.portion * n)
+  train <- seq(from = 1, to = n.train, by = 1)
+  test <- seq(from = n.train + 1, to = n, by = 1)
+  return(list(train = train, test = test))
 }
 
-# fun.pred.lasso <- function(y.train, x.train, y.val, x.val, lambda, pen.factor = NULL){ # calculate mspe for given train set, validation set, lambda
-#   x.train <- Matrix(x.train)
-#   x.val <- Matrix(x.val)
-#   if (is.null(pen.factor)){
-#     pen.factor <- rep(1, ncol(x.train))
-#   }
-#   fit <- glmnet(x.train, y.train, lambda = lambda, penalty.factor = pen.factor)
-#   y.val.hat <- predict.glmnet(fit, x.val)
-#   mspe <- fun.mse(y.val, y.val.hat)
-#   return(mspe)
-# }
+fun.mse <- function(y, y.hat){ # Calculating MSE, or MSPE
+  n <- length(y)
+  mse <- 1 / n * sum((y - y.hat)^2)
+  return(mse)
+}
 
 fun.fit.lasso <- function(y.train, x.train, lambda, pen.factor = NULL){
   x.train <- Matrix(x.train)
@@ -52,19 +48,34 @@ fun.cv.lasso <- function(y, x, lambda, kf){ # bring it all to calculate k-fold C
   n.trainset <- length(cv.index$train)
   n.valset <- length(cv.index$val)
   mspe.mat <- rep(1, n.valset)
+  pen.factor <- 1/abs(lm(y ~ x)$coefficients[-1])
   for (i in 1:n.trainset) {
     y.train <- y[cv.index$train[[i]]]
     y.val <- y[cv.index$val[[i]]]
     x.train <- x[cv.index$train[[i]], ]
     x.val <- x[cv.index$val[[i]], ]
-    pen.factor <- (abs(coef(lm(y ~ x))[-1]))^-1
-    pen.factor[which(is.na(pen.factor))] <- 1
     fitted <- fun.fit.lasso(y.train, x.train, lambda, pen.factor = pen.factor)
     mspe.mat[i] <- fun.pred.lasso(y.val, x.val, fitted)
   }
   cv.mspe <- mean(mspe.mat)
   return(cv.mspe)
 }
+
+fun.optim.lambda <- function(sample, start.val){
+  n.sim <- length(sample)/2
+  y.all <- sample[seq(from = 1, to = length(sample), by = 2)]
+  x.all <- sample[seq(from = 2, to = length(sample), by = 2)]
+  optim.lambda <- matrix(0, ncol = 2, nrow = n.sim)
+  for (i in 1:n.sim){
+    optim.tmp <- optim(par = start.val, function(a) fun.cv.lasso(y.all[[i]], x.all[[i]], kf = 10, lambda = a),
+                       method = "L-BFGS-B", lower = 0.001)
+    optim.lambda[i, 1] <- optim.tmp$par
+    optim.lambda[i, 2] <- optim.tmp$value
+  }
+  return(optim.lambda)
+}
+
+
 
 fun.pred.ols <- function(y.train, x.train, y.val, x.val){
   x.val <- cbind(rep(1, length(y.val)), x.val)
@@ -157,7 +168,7 @@ fun.dgp2 <- function(n.burn = 500, n.obs = 500){
   ## bring it all together for a x matrix and create y
   x <- cbind(x.ar, x.coll, x.vecm)
   y.intercept <- 0.3
-  y.coef <- matrix(c(0, -0.2, 1/sqrt(n.obs), 0.6, 0, 0.3, -0.3, 0, 0.5), nrow = 1)
+  y.coef <- matrix(c(0, -0.2, 1/sqrt(n.obs), 0.6, 0, 0.3, -0.7, 0, 0.5), nrow = 1)
   y.err <- rnorm(n.tot)
   y <- y.intercept + x%*%t(y.coef) + y.err
   
