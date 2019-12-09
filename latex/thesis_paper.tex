@@ -16,17 +16,18 @@
 \renewcommand{\thetable}{\arabic{section}.\arabic{figure}} % Redefine the table numbering
 \usepackage[english]{babel}
 \usepackage{titling} % Package for separated title page environment
+\DeclareMathOperator*{\argmin}{arg\,min}
 
 \graphicspath{ {./} }
 \author{Hieu Hoang}
-\title{Seminar in Statistics \\ Functional-Coefficients Autoregressive Model}
+\title{Master Thesis \\ LASSO-based predictive regression for stock returns}
 
 \begin{document}
 \pagenumbering{gobble} % this is to supress numbering
 \begin{titlepage}
 	\maketitle
 	\begin{abstract}
-		In this paper, we discuss the details of a generalized class that contains the well-known Threshold Autoregressive and Exponential Autoregressive model. To demonstrate the robustness and predictive power of the model, two examples are examined.
+		This is a place holder.
 	\end{abstract}
 \end{titlepage}
 
@@ -55,21 +56,62 @@ OLS, or ordinary least squares, is a long-standing powerhouse in the scene of li
 --- Specifically, the stochastic processes involved must be stationary and ergodic. --- more precise here. reformulate, validity is not necessarily restricted to stationarity and ergodicity, more important is that the disturbances are uncorrelated to the regressors. ---
 However, evidences for stationarity of valuation ratios are mixed and shaky. \cite{roll2002rational} argues that under rational expectation, asset price is non-stationary due to its dependence on expectation of future quantities. Yet, metrics that are constructed as functions of price, e.g market-to-book, earning-price ratios, dividend yields may exhibit different root characteristics \citep{phillips2015halbert}. At the same time, most remaining series show high yet imprecisely determined degree of persistence, leading to the problem of mixed roots, possibly cointegrated, regression. \cite{phillips2015halbert} also discussed 'misbalancing' issue, where predicted variable and predictors have different memory type. The solution out is not straight-forward. \cite{elliott1994inference} discussed two common simple solutions: ignore the problem altogether, or determine the post-regression inference by pretesting predictors for unit roots. Both lead to the substantial over-rejection of the null of no significance. The solution proposed in the same paper involves Bayesian statistic, thus may not be appealing to some. In another approach, a local-to-unity autoregressive specification in the form of $ \rho = 1 + \frac{c}{n} $ is used to conduct asymptotic theory. However, the introduction of the unknown parameter brings more issues. Since localizing coefficient $c$ is not consistently estimable, asymptotic bias cannot be corrected, leading to nonstandard limit theory. \cite{phillips2013predictive} discussed $c$ and suggested possible solutions.
 
-Another violation of OLS assumptions comes in the form of high to perfect correlation between predictors. In the case of perfect correlation, removing regressor is a common remedy. When the correlation is not perfect, determinant(s) of design matrix gets into the vicinity of zero, causing computational difficulty in matrix inversion and inflated coefficient estimates. However, removing regressors is not always an preferable option since each regressor may contain some additional information that can improve the model fit or prediction. In the case of predicting excess returns, some predictors may contain information about market inefficiency despite high correlation due to a common variable in their construction. This kind of construction also leads to possible co-movement of predictors, causing singularity in the limit (near-singular design matrix). As variable frequency increases, singularity can come very quickly.
+Another violation of OLS assumptions comes in the form of high to perfect correlation between predictors. In the case of perfect correlation, removing appropriate regressor is a common remedy. When the correlation is not perfect, determinant(s) of design matrix gets into the vicinity of zero, causing computational difficulty in matrix inversion and inflated coefficient estimates. However, removal of regressors is not always an preferable option since each regressor may contain some additional information that can improve the model fit or prediction. In the case of predicting excess returns, some predictors may contain information about market inefficiency despite high correlation due to a common variable in their construction. This kind of construction also leads to possible co-movement of predictors, causing singularity in the limit (near-singular design matrix). As variable frequency increases, singularity can come very quickly.
 --- A recent paper by \cite{phillips2016inference} dealt with this near-singularity in stationary regression. In the case of near-singular least squares, estimates are inconsistent and converge to random quantities dependent on the distribution of data through the input of error term and an unknown stationary component. --- Need edit, not suitable reference ---
 
-In this paper, I would like to introduce a relatively new method of estimation for linear model that has the ability to hopefully overcome some of the aforementioned issues. Proposed and discussed by \cite{tibshirani1996regression}, the lasso (least absolute shrinkage and selection operator) exhibits some more preferable properties than vanilla OLS.
+In this paper, I would like to introduce a relatively new method of estimation for linear model that has the ability to hopefully overcome some of the aforementioned issues. Proposed and discussed by \cite{tibshirani1996regression}, the lasso (least absolute shrinkage and selection operator) exhibits some more preferable properties than plain vanilla OLS.
 
-First, while shrinking coefficients introduces some bias, it helps to prevent estimate inflation in presence of high-collinearity. In fact, for the case of near-singular design, the lasso estimates are consistent, and with an appropriate choice for shrinkage parameter $ \lambda $, limiting distribution is normal \citep{knight2000asymptotics, knight2008shrinkage}. This result is especially handy for the case in this paper.
+First, while shrinking coefficients introduces some amount of bias, it helps to prevent estimate inflation in presence of high-collinearity. In fact, for the case of near-singular design, the lasso estimates are consistent, and with an appropriate choice for shrinkage parameter $ \lambda $, limiting distribution is normal \citep{knight2000asymptotics, knight2008shrinkage}. This result is especially handy for the case in this paper.
 
 Second, lasso can set some coefficients to zero, effectively performs continuous model selection. Via this mechanism, variance is reduced and hence accuracy may increase in the case of predictive regression. Continuous model selection has some advantages over discrete model selection, for example subset selection, where small change in data can lead to substantially different selection outcome, or be trapped in a local optimum \citep{breiman1995better}. Furthermore, as the number of regressors increases, discrete selection is computationally hard. On the other hand, continuous selection process is more stable, intepretable, and can scale easily with a large number of variables \citep{tibshirani1996regression}. However, plain-vanilla lasso is not always consistent in identifying the right subset of variables, and does not always exhibit 'oracle properties' (consistency in variable selection and asymptotic normality) \citep{meinshausen2004consistent, zou2006adaptive}. Hence, the adaptive lasso is proposed by \cite{zou2006adaptive}. Alasso assigns weights to each coefficients, and if the weights are cleverly chosen and data-driven, alasso can enjoys oracle properties. 
 
-Last but not least, the alasso works well in the case of mixed degree of persistence in predictive regression mentioned above. It can even adapt to system of predictors that exhibits cointegration by assigning appropriate penalty level inside the system without knowing the identity of these predictors. \cite{lee2018lasso} establishes and demonstrates a simple condition on $\lambda$ that leads alasso to oracle properties without knowing persistence level in advance.
+Last but not least, the alasso works well in the case of mixed degree of persistence in predictive regression mentioned above. It can even adapt to system of predictors that exhibits cointegration by assigning appropriate penalty level inside the system without knowing the identity of these predictors. \cite{lee2018lasso} establishes and demonstrates a simple condition on $\lambda$ that leads alasso to oracle properties without knowledge of persistence level in advance.
 
 With all the favorable theory at hand, I will embark on testing the performance of alasso in both simulation and real data settings. But first, I will re-establish important results mentioned above in a more concrete manner.
 
-\section{The Adaptive Lasso}
+\section{The Adaptive Lasso and Its Advantages}
+In this section, we will discuss the advantage of alasso. The theoretical framework will closely follow \cite{tibshirani1996regression, knight2008shrinkage, zou2006adaptive, lee2018lasso}.
 
+\textbf{THE MODEL}
+The linear model is assumed to be as following, adapted from \cite{lee2018lasso}: \begin{equation}
+\begin{aligned}
+	y_i & = \sum_{l=1}^{p_z}z_{il}\alpha_{l}^{*} + 
+	\sum_{l=1}^{p_x}x_{il}\beta_{l}^{*} + 
+	\sum_{l=1}^{p_c}x_{il}^c\phi_{l}^{*} +
+	u_i \\
+		& = \bm{z}_i\alpha^* + \bm{x}_i^s\eta^* + 
+	\bm{x}_i\beta^* + \bm{x}_i^c\phi^* + u_i \\
+		& = \bm{w_i}\bm{\theta} + u_i, \\
+	\bm{y} & = \bm{u}\bm{\theta} + \bm{u}
+\end{aligned}
+\end{equation}
+for $ i = 1,\ldots, n, $ where $ \bm{z}_i = (z_{i1}, \ldots, z_{ip_z}) $, $ \bm{x}^c_i = (x^c_{i1}, \ldots, x^c_{ip_z}) $, and $ \bm{x}_i = (x_{i1}, \ldots, x_{ip_x}) $ represent the stationary, cointegrated, and unit root regressors, respectively, and $p = p_z + p_c + p_x$ is the total number of regressors in the model. $\bm{w_i}$ is $ 1 \times p $ vector of all regressors; $\bm{\theta}$ is $p \times 1$  vector of all coefficients. The presence of heterogeneous degrees of persistence and cointegration in our regressors nicely follows practical situation in predicting excess return with multiple valuation ratios and macroeconomic variables.
+
+One deviation from the model laid out in \cite{lee2018lasso} is that regressors are allowed to have increasingly strong correlation between one another. Specifically, as sample size $ n $ increases, the degree of correlation between said regressors also rises. This setting is included to emulate near-singular design matrix phenomenon frequently encountered in stock return predictive regression. Later, we will see that the sequence of tuning parameter $ \lambda $ proposed by \cite{lee2018lasso} is also helpful in combating near-singular design. Formally, define matrix $ C_n $ as in \cite{knight2008shrinkage}:
+\begin{equation}
+	C_n = \frac{1}{n}\sum_{i = 1}^{n}\bm{w}_i \bm{w}_i'
+\end{equation}
+that is nonsingular for each $ n $ except for when $ n \rightarrow \infty $, then 
+\begin{equation}
+	C_n \rightarrow C,
+\end{equation}
+where $ C $ is singular. For some sequence $ \{a_n\}$ tending to infinity, we assume that
+\begin{equation}
+	a_n(C_n - C) \rightarrow D_0
+\end{equation}
+where $ D_0 $ is positive definite on the null space of $ C $, that is $ \bm{v}'D_0\bm{v} > 0 $ for non-zero $ \bm{v} $ with $ C\bm{v} = 0 $. Another assumption is that near-singularity affect all regressors in our model.
+
+To ensure stationarity of $ y_i $, the effect of non-stationary regressors (including unit root components in cointegrated ones) are kept small using local-to-zero coefficients. This type of coefficient design is also useful to model the weak signal-to-noise ratio in predictive regression \citep{phillips2013predictive, lee2018lasso}. The $ p \times 1$ true coefficient $ \theta^*_n = (\theta^*_{jn} = \theta^{0*}_j/n^{\delta_j})^p_{j = 1} $ where $ \theta^{0*}_j \in \mathbb{R} $ is a fixed constant independent of sample size, and $ \delta_j \in [0, 1) $. In cases where $ \theta^{0*}_j = 0 $,  $ \delta_j $ is also set to zero. $ \theta^*_n $ thus gets smaller with increasing sample size for $ \theta^{0*}_j \neq 0 $ and $ \delta_j \in (0, 1) $, and approach zero as $ n $ tends to infinity.
+
+On the front of identification, assumptions about error terms must also be made. While correlation between regression error and the innovation of non-stationary regressors $ \bm{x}_i $ is allowed, correlation between regression errors and innovation of stationary and cointegrated regressors is excluded (see \textbf{Assumption 3.1} and \textbf{Remark 3.1}, \cite{lee2018lasso}).
+
+
+\textbf{THE LASSO}
+Lasso is a technique for estimation of linear models that utilize regularization in order to shrink coefficients and perform variable selection at the same time \citep{tibshirani1996regression}. Lasso estimates are defined as
+\begin{equation}
+	\bm{\hat{\beta}}_{lasso} = \underset{\bm{\theta}}{\argmin} \left\Vert\bm{y}-\sum_{j=1}^{p}\bm{w}_j\theta_j\right\Vert^2 + \lambda\sum_{j=1}^{p}|\theta_j|
+\end{equation}
+This is place holder
 \section{Simulation study}
 
 \section{Application: Goyal's data set}

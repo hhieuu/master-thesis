@@ -24,7 +24,7 @@
 
 ### Functions:
 source('myfun.R')
-  
+source('dgp.R')
 ### Import and clean Data
 data.original <- read_excel("PredictorData2018.xlsx")
 
@@ -44,8 +44,7 @@ for (i in 2:length(data)) {
 lag = 1
 # Dependent Var
 var.premium <- data$CRSP_SPvw - data$Rfree
-var.premium.lag <- var.premium[-1]
-var.premium.stdrd <- scale(var.premium)
+var.premium <- var.premium[- length(var.premium)]
 n.obs <- length(var.premium)
 
 # Regressors
@@ -68,7 +67,7 @@ var.infl <- data$infl # inflation from Consumer Price Index, 1919 to 2005
 # var.ik # 
 var.all <- cbind(var.dp, var.dy, var.ep, var.de, var.svar, var.bm, var.ntis, var.tbl,
                         var.lty, var.ltr, var.tms, var.dfy, var.dfr, var.infl) # design matrix of all regressors
-var.all.lag <- var.all[-1, ]
+var.all.lag <- var.all[- 1, ]
 
 ## Testing for stationarity/cointegration using ADF test
 adf.pval.premium <- adf.test(var.premium, 'stationary', k = 1)
@@ -76,13 +75,14 @@ adf.pval.all <- apply(var.all, 2, function(x) adf.test(x, 'stationary', k = 1)$p
 # --> Test result is quite promising, as the null of unit root is rejected in 12/14 variables at 5%
 adf.test(diff(var.tbl))
 adf.test(diff(var.lty))
+
 # Testing 1st difference of these 2 non-stationary time series confirms that both are of I(1)
 # We will now also test for cointegration between the two: var.tbl and var.lty
 adf.test(lm(var.tbl ~ var.lty)$residuals)
 # Residual series generated from simple regression between 2 var is stationary, implying cointegration property
 
 ## Detecting collinearity
-fit.ols <- lm(var.premium.lag ~ var.all.lag)
+fit.ols <- lm(var.premium ~ var.all.lag)
 summary(fit.ols)
 # -> as expected from variable construction, var.de and var.tms is perfectly collinear with other variables
 # -> some other variables exhibit high correlation as well, demonstrated in correlogram:
@@ -97,41 +97,112 @@ for (i in 1:ncol(var.all)){
 
 
 ### Performing LASSO
-## Preparing lambda path
-# scale variables (normalize)
-nml <- function(y) sqrt(sum((y-mean(y))^2)/length(y)) #normalization function
-var.all.scale <- scale(var.all, scale = apply(var.all, 2, nml))
-var.premium.scale <- scale(var.premium, scale = nml(var.premium))
+## Prepare and scale variables for each settings
 
-# Calculate lambda path
-lambda.max <- max(abs(colSums(t(var.all.scale)%*%var.premium.scale)))/n.obs
-lambda.epsilon <- .01 # fraction of lambda max to be lambda min
-lambda.n <- 100 # length of lambda path
-lambda.path <- round(exp(seq(log(lambda.max), log(lambda.max*lambda.epsilon), 
-                             length.out = lambda.n)), digits = 10)
 
-## Cross-validation
-Rprof()
-cv.expr <- expression(source('myfun.R'))
-n.cluster <- detectCores()
-cl <- makeCluster(n.cluster)
-clusterExport(cl, c('var.premium.lag', 'var.all.lag', 'lambda.path', 'cv.expr'))
-clusterEvalQ(cl, eval(cv.expr))
-cv.mspe <- parSapply(cl, lambda.path, function(x) fun.cv.lasso(y = var.premium.lag, x = var.all.lag, lambda = x, kf = 10))
+y <- var.premium
+n <- length(y)
+# y.1_12 <- var.premium[480:n]
+y.1_12 <- var.premium[1:160]
+y.1_4 <- fun.horizon.transform(y.1_12, 1/4)
+y.1_2 <- fun.horizon.transform(y.1_12, 1/2)
+y.1 <- fun.horizon.transform(y.1_12, 1)
+y.2 <- fun.horizon.transform(y.1_12, 2)
+y.3 <- fun.horizon.transform(y.1_12, 3)
+
+x <- scale(var.all.lag, TRUE, TRUE)
+# x.1_12 <- scale(var.all.lag, TRUE, TRUE)[480:n, ]
+x.1_12 <- scale(var.all.lag, TRUE, TRUE)[1:160, ]
+x.1_4 <- x.1_12[1:length(y.1_4), ]
+x.1_2 <- x.1_12[1:length(y.1_2), ]
+x.1 <- x.1_12[1:length(y.1), ]
+x.2 <- x.1_12[1:length(y.2), ]
+x.3 <- x.1_12[1:length(y.3), ]
+
+horizon.setting <- c('1_12', '1_4', '1_2', '1', '2', '3')
+
+# Finding optimal lambda by 10-fold cross-validation
+# Another consequence of singularity is that OLS cannot be used for estimation of weights for the adaptive LASSO.
+# Therefore, ridge regression estimates will be used as a replacement due to them being good approximation
+#   of non-regularized least square estimates in singular design with lambda near zero (Knight and Fu, 2000).
+# Test ridge fit
+
+fit.ridge <- glmnet(x, y, alpha = 0)
+coef.ridge <- coef(fit.ridge, s = 1e-10, exact = TRUE, x = x, y = y)[- 1] # omitting intercept
+coef.ridge
+
+# The estimated coefficients for ridge regression is stable and can be used to compute penalty factor for alasso
+## Next we will use 10-fold rolling windows cross-validation to find optimal initial value of lambda for our problem at hand.
+# As a first step, we will try to examine the path of cv.mspe given lambda path.
+
+tic()
+alasso.optim.mse <- sapply(seq(from = 0.0001, to = 0.3, length.out = 200), 
+                           function(s) fun.cv.lasso(y.1, x.1, kf = 5, lambda = s, pen.factor = TRUE, pen.type = 'ridge'))
+plot(1:length(alasso.optim.mse), alasso.optim.mse, type = 'l')
+alasso.lambda.min <- seq(from = 0.0001, to = 0.3, length.out = 200)[which.min(alasso.optim.mse)]
+which.min(alasso.optim.mse)
+print(alasso.lambda.min)
+
+# As we can see, the mspe is decreasing very fast with increasing lambda and stay flat after certain values (of lambda)
+# Therefore, optimization algorithms is very volatile and dependent on given initial value.
+# After the examination above, we will set initial value for optimization to a value close to min (0.01).
+# Reader can try and change the initial value below to see the volatility
+
+alasso.optim <- optim(par = alasso.lambda.min, 
+                      function(a) fun.cv.lasso(y.1, x.1, kf = 5, lambda = a, pen.factor = TRUE, pen.type = 'ridge'),
+                      method = "L-BFGS-B", lower = 0.0001)
+toc()
+print(alasso.optim$par)
+print(alasso.optim$message)
+
+
+
+# tic()
+# test.pred <- fun.lasso.predict(y.1, x.1)
+# toc() # 10395 secs to run for full data
+# mean(test.pred$mspe) 
+# length(test.pred$mspe)
+
+# Using parallel apply to speed up. Still very long to run
+
+cl <- parallel::makeCluster(detectCores() - 1)
+# on.exit(parallel::stopCluster(cl), add = TRUE)
+envir <- environment(fun.lasso.predict)
+parallel::clusterExport(cl, varlist = ls(envir), envir = envir)
+parallel::setDefaultCluster(cl = cl)
+
+tic()
+par.alasso.result.10 <- parLapply(cl, horizon.setting,
+                               function(a) fun.lasso.predict(get(paste('y.', a, sep = '')), get(paste('x.', a, sep = '')),
+                                                             init.val = 0.03))
+toc()
+
+tic()
+par.lasso.result.10 <- parLapply(cl, horizon.setting,
+                               function(a) fun.lasso.predict(get(paste('y.', a, sep = '')), get(paste('x.', a, sep = '')),
+                                                             pen.factor = FALSE, init.val = 0.04))
+toc()
+
+tic()
+par.alasso.result.12 <- parLapply(cl, horizon.setting,
+                                  function(a) fun.lasso.predict(get(paste('y.', a, sep = '')), get(paste('x.', a, sep = '')),
+                                                                window = 12, init.val = 0.03))
+toc()
+
+tic()
+par.lasso.result.12 <- parLapply(cl, horizon.setting,
+                                 function(a) fun.lasso.predict(get(paste('y.', a, sep = '')), get(paste('x.', a, sep = '')),
+                                                               pen.factor = FALSE, window = 12, init.val = 0.03))
+toc()
 stopCluster(cl)
-summaryRprof()
 
-# plot cv error
-plot(lambda.path, cv.mspe, pch = 20)
-lambda.min <- lambda.path[which.min(cv.mspe)]
+alasso.mspe.10 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.alasso.result.10[[i]]$mspe)
+lasso.mspe.10 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.lasso.result.10[[i]]$mspe)
+alasso.mspe.12 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.alasso.result.12[[i]]$mspe)
+lasso.mspe.12 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.lasso.result.12[[i]]$mspe)
 
-# replicate weights used in CV
-pen.factor <- (abs(coef(lm(var.premium.lag ~ var.all.lag))[-1]))^-1
-pen.factor[which(is.na(pen.factor))] <- 1
 
-# refit using optimal lambda for Alasso
-lambda.optim <- lambda.min
-fit.lasso <- glmnet(var.all.lag, var.premium.lag, lambda = lambda.optim, penalty.factor = pen.factor)
-coef(fit.lasso)
 
-coef(glmnet(var.all.lag, var.premium.lag, lambda = 0.0001))
+
+
+

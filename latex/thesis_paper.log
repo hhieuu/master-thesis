@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.19 (MiKTeX 2.9.6840 64-bit) (preloaded format=latex 2018.11.15)  17 OCT 2019 14:29
+This is pdfTeX, Version 3.14159265-2.6-1.40.19 (MiKTeX 2.9.6840 64-bit) (preloaded format=latex 2018.11.15)  5 DEC 2019 14:04
 entering extended mode
 **./thesis_paper.tex
 (thesis_paper.tex
@@ -256,28 +256,28 @@ Package: titling 2009/09/04 v2.1d maketitle typesetting
 ) (thesis_paper.aux)
 \openout1 = `thesis_paper.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 24.
-LaTeX Font Info:    ... okay on input line 24.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 24.
-LaTeX Font Info:    ... okay on input line 24.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 24.
-LaTeX Font Info:    ... okay on input line 24.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 24.
-LaTeX Font Info:    ... okay on input line 24.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 24.
-LaTeX Font Info:    ... okay on input line 24.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 24.
-LaTeX Font Info:    ... okay on input line 24.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 25.
+LaTeX Font Info:    ... okay on input line 25.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 25.
+LaTeX Font Info:    ... okay on input line 25.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 25.
+LaTeX Font Info:    ... okay on input line 25.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 25.
+LaTeX Font Info:    ... okay on input line 25.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 25.
+LaTeX Font Info:    ... okay on input line 25.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 25.
+LaTeX Font Info:    ... okay on input line 25.
 Package caption Info: Begin \AtBeginDocument code.
 Package caption Info: listings package is loaded.
 Package caption Info: End \AtBeginDocument code.
 \c@lstlisting=\count117
-LaTeX Font Info:    Try loading font information for U+msa on input line 27.
+LaTeX Font Info:    Try loading font information for U+msa on input line 28.
 
 ("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\latex\amsfonts\umsa.fd"
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Try loading font information for U+msb on input line 27.
+LaTeX Font Info:    Try loading font information for U+msb on input line 28.
 ("C:\Users\hoang\AppData\Local\Programs\MiKTeX 2.9\tex\latex\amsfonts\umsb.fd"
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 ) [1
@@ -286,15 +286,15 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 \tf@toc=\write3
 \openout3 = `thesis_paper.toc'.
 
- [1] [2] [3] [4] [5] (thesis_paper.bbl [6] [7]) [8]
-(thesis_paper.aux) ) 
+ [1] [2] [3] [4] [5] [6] [7] (thesis_paper.bbl [8]
+[9]) [10] (thesis_paper.aux) ) 
 Here is how much of TeX's memory you used:
- 5139 strings out of 492971
- 74970 string characters out of 3126619
+ 5141 strings out of 492971
+ 75019 string characters out of 3126619
  150428 words of memory out of 3000000
- 8957 multiletter control sequences out of 15000+200000
+ 8959 multiletter control sequences out of 15000+200000
  18274 words of font info for 67 fonts, out of 3000000 for 9000
  1141 hyphenation exceptions out of 8191
- 36i,6n,38p,2014b,246s stack positions out of 5000i,500n,10000p,200000b,50000s
+ 36i,7n,38p,2016b,254s stack positions out of 5000i,500n,10000p,200000b,50000s
 
-Output written on thesis_paper.dvi (9 pages, 24112 bytes).
+Output written on thesis_paper.dvi (11 pages, 30416 bytes).
