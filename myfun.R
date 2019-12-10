@@ -295,3 +295,45 @@ fun.lasso.predict <- function(y, x, pen.factor = TRUE, pen.type = 'ridge',
   return(list(mspe = mspe, lambda = lambda, coef = coef))
 }
 
+fun.ols.emp <- function(y, x, window = 10, horizon = 1){
+  ## Splitting data into rolling windows
+  index.roll <- createTimeSlices(y, initialWindow = 12 * window, horizon = horizon)
+  n.test <- length(index.roll$test)
+  p <- ncol(x)
+  mspe <- rep(NA, n.test)
+  coef <- matrix(NA, nrow = n.test, ncol = p + 1)
+  
+  ## Performing OLS
+  for (i in 1:n.test){
+    x.train <- x[index.roll$train[[i]], ]
+    y.train <- y[index.roll$train[[i]]]
+    x.test <- cbind(1, matrix(x[index.roll$test[[i]], ], nrow = horizon))
+    y.test <- y[index.roll$test[[i]]]
+    
+    fit <- lm(y.train ~ x.train)
+    index.na <- which(is.na(coef(fit)))
+    y.hat <- x.test[, - index.na] %*% matrix(coef(fit))[- index.na, ]
+    coef[i, ] <- matrix(fit$coefficients, nrow = 1)
+    mspe[i] <- fun.mse(y.test, y.hat)
+  }
+  return(list(mspe = mspe, coef = coef))
+}
+
+fun.rw.emp <- function(y, window = 10, horizon = 1){
+  ## Splitting data into rolling windows
+  index.roll <- createTimeSlices(y, initialWindow = 12 * window, horizon = horizon)
+  n.test <- length(index.roll$test)
+  mspe <- rep(NA, n.test)
+  
+  ## Performing RWwD
+  for (i in 1:n.test){
+    y.train <- y[index.roll$train[[i]]]
+    y.test <- y[index.roll$test[[i]]]
+    
+    rw.mean <- mean(y.train)
+    mspe[i] <- fun.mse(y.test, rw.mean)
+  }
+  return(mspe)
+}
+
+

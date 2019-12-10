@@ -8,15 +8,20 @@
 \usepackage{bm} 
 \usepackage{listings}
 \usepackage{array} % package to center entries in table
+\usepackage[utf8]{inputenc} 
+\usepackage[english]{babel}
+\usepackage{titling} % Package for separated title page environment
+
+
 \newcolumntype{P}[1]{>{\centering\arraybackslash}p{#1}} % to center entries in table
 \newcolumntype{M}[1]{>{\centering\arraybackslash}m{#1}} % Vertical centering
 \setlength{\parskip}{1em}
 \newcommand{\forceindent}{\leavevmode{\parindent=2em\indent}} % force indent custom function
 \renewcommand{\thefigure}{\arabic{section}.\arabic{figure}} % Redefine the figure numbering
 \renewcommand{\thetable}{\arabic{section}.\arabic{figure}} % Redefine the table numbering
-\usepackage[english]{babel}
-\usepackage{titling} % Package for separated title page environment
-\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmin}{arg\,min} % Define argmin in math mode
+\DeclareMathOperator*{\sgn}{sgn} % Define sgn() in math mode
+\newtheorem{theorem}{Theorem} % Declare theorem environment
 
 \graphicspath{ {./} }
 \author{Hieu Hoang}
@@ -56,10 +61,9 @@ OLS, or ordinary least squares, is a long-standing powerhouse in the scene of li
 --- Specifically, the stochastic processes involved must be stationary and ergodic. --- more precise here. reformulate, validity is not necessarily restricted to stationarity and ergodicity, more important is that the disturbances are uncorrelated to the regressors. ---
 However, evidences for stationarity of valuation ratios are mixed and shaky. \cite{roll2002rational} argues that under rational expectation, asset price is non-stationary due to its dependence on expectation of future quantities. Yet, metrics that are constructed as functions of price, e.g market-to-book, earning-price ratios, dividend yields may exhibit different root characteristics \citep{phillips2015halbert}. At the same time, most remaining series show high yet imprecisely determined degree of persistence, leading to the problem of mixed roots, possibly cointegrated, regression. \cite{phillips2015halbert} also discussed 'misbalancing' issue, where predicted variable and predictors have different memory type. The solution out is not straight-forward. \cite{elliott1994inference} discussed two common simple solutions: ignore the problem altogether, or determine the post-regression inference by pretesting predictors for unit roots. Both lead to the substantial over-rejection of the null of no significance. The solution proposed in the same paper involves Bayesian statistic, thus may not be appealing to some. In another approach, a local-to-unity autoregressive specification in the form of $ \rho = 1 + \frac{c}{n} $ is used to conduct asymptotic theory. However, the introduction of the unknown parameter brings more issues. Since localizing coefficient $c$ is not consistently estimable, asymptotic bias cannot be corrected, leading to nonstandard limit theory. \cite{phillips2013predictive} discussed $c$ and suggested possible solutions.
 
-Another violation of OLS assumptions comes in the form of high to perfect correlation between predictors. In the case of perfect correlation, removing appropriate regressor is a common remedy. When the correlation is not perfect, determinant(s) of design matrix gets into the vicinity of zero, causing computational difficulty in matrix inversion and inflated coefficient estimates. However, removal of regressors is not always an preferable option since each regressor may contain some additional information that can improve the model fit or prediction. In the case of predicting excess returns, some predictors may contain information about market inefficiency despite high correlation due to a common variable in their construction. This kind of construction also leads to possible co-movement of predictors, causing singularity in the limit (near-singular design matrix). As variable frequency increases, singularity can come very quickly.
---- A recent paper by \cite{phillips2016inference} dealt with this near-singularity in stationary regression. In the case of near-singular least squares, estimates are inconsistent and converge to random quantities dependent on the distribution of data through the input of error term and an unknown stationary component. --- Need edit, not suitable reference ---
+Another violation of OLS assumptions comes in the form of high to perfect correlation between predictors. In the case of perfect correlation, removing appropriate regressor is a common remedy. When the correlation is not perfect, determinant(s) of design matrix gets into the vicinity of zero, causing computational difficulty in matrix inversion and inflated coefficient estimates. However, removal of regressors is not always an preferable option since each regressor may contain some additional information that can improve the model fit or prediction. In the case of predicting excess returns, some predictors may contain information about market inefficiency despite high correlation due to a common variable in their construction. This kind of construction also leads to possible co-movement of predictors, causing singularity in the limit (near-singular design matrix). As variable frequency increases such as in the case of financial data, singularity can come very quickly.
 
-In this paper, I would like to introduce a relatively new method of estimation for linear model that has the ability to hopefully overcome some of the aforementioned issues. Proposed and discussed by \cite{tibshirani1996regression}, the lasso (least absolute shrinkage and selection operator) exhibits some more preferable properties than plain vanilla OLS.
+In this paper, I would like to introduce a relatively new method of estimation for linear model that has the ability to hopefully overcome some of the aforementioned issues. Proposed and discussed by \cite{tibshirani1996regression}, the lasso (least absolute shrinkage and selection operator) exhibits some more preferable properties than the well-known OLS.
 
 First, while shrinking coefficients introduces some amount of bias, it helps to prevent estimate inflation in presence of high-collinearity. In fact, for the case of near-singular design, the lasso estimates are consistent, and with an appropriate choice for shrinkage parameter $ \lambda $, limiting distribution is normal \citep{knight2000asymptotics, knight2008shrinkage}. This result is especially handy for the case in this paper.
 
@@ -73,45 +77,95 @@ With all the favorable theory at hand, I will embark on testing the performance 
 In this section, we will discuss the advantage of alasso. The theoretical framework will closely follow \cite{tibshirani1996regression, knight2008shrinkage, zou2006adaptive, lee2018lasso}.
 
 \textbf{THE MODEL}
-The linear model is assumed to be as following, adapted from \cite{lee2018lasso}: \begin{equation}
+The linear model is assumed to be as following, adapted from \cite{lee2018lasso}: \begin{equation}\label{eq:1}
 \begin{aligned}
 	y_i & = \sum_{l=1}^{p_z}z_{il}\alpha_{l}^{*} + 
 	\sum_{l=1}^{p_x}x_{il}\beta_{l}^{*} + 
 	\sum_{l=1}^{p_c}x_{il}^c\phi_{l}^{*} +
-	u_i \\
-		& = \bm{z}_i\alpha^* + \bm{x}_i^s\eta^* + 
-	\bm{x}_i\beta^* + \bm{x}_i^c\phi^* + u_i \\
-		& = \bm{w_i}\bm{\theta} + u_i, \\
-	\bm{y} & = \bm{u}\bm{\theta} + \bm{u}
+	\varepsilon_i \\
+		& = \bm{z}_i'\alpha^* + 
+		\bm{x}_i'\beta^* + 
+		\bm{x}_i'^c\phi^* + \varepsilon_i \\
+		& = \bm{w_i}'\bm{\theta} + \varepsilon_i, \\
+	\bm{y} & = \bm{w}'\bm{\theta} + \bm{\varepsilon}.
 \end{aligned}
 \end{equation}
-for $ i = 1,\ldots, n, $ where $ \bm{z}_i = (z_{i1}, \ldots, z_{ip_z}) $, $ \bm{x}^c_i = (x^c_{i1}, \ldots, x^c_{ip_z}) $, and $ \bm{x}_i = (x_{i1}, \ldots, x_{ip_x}) $ represent the stationary, cointegrated, and unit root regressors, respectively, and $p = p_z + p_c + p_x$ is the total number of regressors in the model. $\bm{w_i}$ is $ 1 \times p $ vector of all regressors; $\bm{\theta}$ is $p \times 1$  vector of all coefficients. The presence of heterogeneous degrees of persistence and cointegration in our regressors nicely follows practical situation in predicting excess return with multiple valuation ratios and macroeconomic variables.
+for $ i = 1,\ldots, n, $ where $ \bm{z}_i = (z_{i1}, \ldots, z_{ip_z})' $, $ \bm{x}^c_i = (x^c_{i1}, \ldots, x^c_{ip_z})' $, and $ \bm{x}_i = (x_{i1}, \ldots, x_{ip_x})' $ represent the stationary, cointegrated, and unit root regressors, respectively, and $p = p_z + p_c + p_x$ is the total number of regressors in the model. $\bm{w_i}$ is $ p \times 1 $ vector of all regressors; $\bm{\theta}$ is $p \times 1$  vector of all coefficients. The presence of heterogeneous degrees of persistence and cointegration in our regressors nicely follows practical situation in predicting excess return with multiple valuation ratios and macroeconomic variables. --- add definition for stacked matrix as well ---
 
-One deviation from the model laid out in \cite{lee2018lasso} is that regressors are allowed to have increasingly strong correlation between one another. Specifically, as sample size $ n $ increases, the degree of correlation between said regressors also rises. This setting is included to emulate near-singular design matrix phenomenon frequently encountered in stock return predictive regression. Later, we will see that the sequence of tuning parameter $ \lambda $ proposed by \cite{lee2018lasso} is also helpful in combating near-singular design. Formally, define matrix $ C_n $ as in \cite{knight2008shrinkage}:
-\begin{equation}
+One deviation from the model laid out in \cite{lee2018lasso} is that regressors are allowed to have increasingly strong correlation between one another. Specifically, as sample size $ n $ increases, the degree of correlation between said regressors also rises. This setting is included to emulate near-singular design matrix phenomenon frequently encountered in stock return predictive regression. Later, we will see that the sequence of tuning parameter $ \lambda $ proposed by \cite{lee2018lasso} intended for mixed root in regressors is also helpful in combating near-singular design. Formally, define matrix $ C_n $ as in \cite{knight2008shrinkage}:
+\begin{equation}\label{eq:2}
 	C_n = \frac{1}{n}\sum_{i = 1}^{n}\bm{w}_i \bm{w}_i'
 \end{equation}
 that is nonsingular for each $ n $ except for when $ n \rightarrow \infty $, then 
-\begin{equation}
+\begin{equation}\label{eq:3}
 	C_n \rightarrow C,
 \end{equation}
-where $ C $ is singular. For some sequence $ \{a_n\}$ tending to infinity, we assume that
-\begin{equation}
+where $ C $ is singular. In practice, near-singular design can be detected by checking whether the smallest eigenvalue of $ C_n $ is small in comparison to its trace. 
+For some sequence $ \{a_n\}$ tending to infinity, we assume that
+\begin{equation}\label{eq:4}
 	a_n(C_n - C) \rightarrow D_0
 \end{equation}
-where $ D_0 $ is positive definite on the null space of $ C $, that is $ \bm{v}'D_0\bm{v} > 0 $ for non-zero $ \bm{v} $ with $ C\bm{v} = 0 $. Another assumption is that near-singularity affect all regressors in our model.
+where $ D_0 $ is positive definite on the null space of $ C $, that is $ \bm{v}'D_0\bm{v} > 0 $ for non-zero $ \bm{v} $ with $ C\bm{v} = 0 $.
+Another assumption is that near-singularity affect all regressors in our model.
 
 To ensure stationarity of $ y_i $, the effect of non-stationary regressors (including unit root components in cointegrated ones) are kept small using local-to-zero coefficients. This type of coefficient design is also useful to model the weak signal-to-noise ratio in predictive regression \citep{phillips2013predictive, lee2018lasso}. The $ p \times 1$ true coefficient $ \theta^*_n = (\theta^*_{jn} = \theta^{0*}_j/n^{\delta_j})^p_{j = 1} $ where $ \theta^{0*}_j \in \mathbb{R} $ is a fixed constant independent of sample size, and $ \delta_j \in [0, 1) $. In cases where $ \theta^{0*}_j = 0 $,  $ \delta_j $ is also set to zero. $ \theta^*_n $ thus gets smaller with increasing sample size for $ \theta^{0*}_j \neq 0 $ and $ \delta_j \in (0, 1) $, and approach zero as $ n $ tends to infinity.
+
+--- More definition about $ \bar{\delta} $, set of true parameters $ M^* $, set of screened parameters $ \hat{M}_n $ ---
 
 On the front of identification, assumptions about error terms must also be made. While correlation between regression error and the innovation of non-stationary regressors $ \bm{x}_i $ is allowed, correlation between regression errors and innovation of stationary and cointegrated regressors is excluded (see \textbf{Assumption 3.1} and \textbf{Remark 3.1}, \cite{lee2018lasso}).
 
 
 \textbf{THE LASSO}
-Lasso is a technique for estimation of linear models that utilize regularization in order to shrink coefficients and perform variable selection at the same time \citep{tibshirani1996regression}. Lasso estimates are defined as
-\begin{equation}
-	\bm{\hat{\beta}}_{lasso} = \underset{\bm{\theta}}{\argmin} \left\Vert\bm{y}-\sum_{j=1}^{p}\bm{w}_j\theta_j\right\Vert^2 + \lambda\sum_{j=1}^{p}|\theta_j|
+Lasso is a technique for estimation of linear models that utilize regularization in order to shrink coefficients and perform variable selection at the same time \citep{tibshirani1996regression}. Lasso objective function for model \eqref{eq:1} are defined to be
+\begin{equation}\label{eq:5}
+	% \bm{\hat{\theta}}_{lasso} = 
+	% \underset{\bm{\theta \in \mathbb{R}^p}}{\argmin}
+	\sum_{i = 1}^n(y_i - \bm{w}_i'\bm{\theta})^2 + 
+	\lambda_n\sum_{j = 1}^p\vert\theta_j\vert,
 \end{equation}
-This is place holder
+which is essentially least square with an additional $ \ell1 $ penalty that helps force estimates of "small" parameter towards zero. Despite of course introducing some bias into the estimates, lasso may reduce estimation variance. In the limit, truly "small" parameters are zero with probability tends to 1 while all others are discernibly not zero. Therefore, in cases where true parameters are zero, no biases are produced and variance is reduced, a win-win situation (superefficiency, as termed in \cite{knight2008shrinkage}). On the other hand, such regularization causes bias in estimates for non-zero true coefficients while typically does not improve estimation variance considerably. Naturally, we want estimators that achieve superefficiency when $ \theta^*_j = 0 $ and produce no asymptotic bias otherwise. Studying how estimators behave in the limit regarding the choice of tuning parameter $ \lambda $ is hence a great way to come up with a desirable one. 
+\cite{knight2000asymptotics} find that if $ \lambda $ is treated as a sequence dependent on sample size, and design matrix is non-singular, $ O(n) $ growth rate of $ \{\lambda_n\} $ is sufficient to obtain $ \sqrt{n} $-consistency and non-degenerate limiting distribution. However, in this paper we are more interested in cases where the design matrix is near-singular.
+
+\textbf{NEAR-SINGULAR DESIGN MATRIX}
+Assume model \eqref{eq:1} with $ C_n $ satisfies \eqref{eq:2}, \eqref{eq:3}, and \eqref{eq:4}, that $ C $ is singular and $ D_0 $ is positive definite in the null space of $ C $. Define $ b_n = (n/a_n)^{1/2} $ for $ \{a_n\} $ satisfies \eqref{eq:4}, and define $ Z_n $ to be
+\begin{equation}\label{eq:6}
+	Z_n(\bm{u}) = 
+	\sum_{i = 1}^n[(\varepsilon_i - \bm{u}'\bm{w}_i/b_n)^2 - \varepsilon_i^2] +
+	\lambda_n\sum_{j = 1}^{p}(\vert\theta_j + u_j/b_n\vert - \vert\theta_j\vert).
+\end{equation}
+This equation is a rescaled version of the objective function in \eqref{eq:5} with constants subtracted so that convergence is ensured. If $ \hat{\bm{\theta}} $ minimizes \eqref{eq:5} then $ b_n(\hat{\bm{\theta}} - \bm{\theta}) $ minimizes \eqref{eq:6}. The following theorem is adapted from \cite{knight2000asymptotics}:
+
+\begin{theorem} [adapted from Theorem 1, \cite{knight2008shrinkage}]
+	Define $ \bm{\Omega} $ to be a zero mean multivariate normal random vector such that {\normalfont Var}$ (\bm{u}'\bm{\Omega}) = \sigma^2\bm{u}'D_0\bm{u} $ positive for each nonzero $ \bm{u} $ that satisfies $ C\bm{u} = \bm{0} $. Let $ \hat{\bm{\theta}}_n $ minimizes \eqref{eq:5} for $ \lambda_n \geq 0$. If $ \lambda_n/b_n \rightarrow \lambda_0 \geq 0 $ then
+	\[
+	b_n(\hat{\bm{\theta}}_n - \bm{\theta}) \overset{d}{\longrightarrow} 
+	\argmin\{Z(\bm{u}):C\bm{u} = \bm{0}\},
+	\] where \[
+	Z(\bm{u}) = -2\bm{u}'\bm{W} + \bm{u}'D_0\bm{u} +
+	\lambda_0\sum_{j = 1}^p\{u_j\sgn(\theta_j) + \vert u_j\vert I(\theta_j = 0)\}.
+	\]
+\end{theorem}
+This theorem reveals many interesting insights. With a proper choice of $ \{\lambda_n\} $, that is the sequence converges to a finite non-negative value $ \lambda_0 $, lasso estimate has normal limiting distribution. In the case of $ \lambda_0 = 0 $, lasso, somewhat trivially, is consistent and has the same limiting distribution as the OLS does since the penalty term vanishes. Less trivial is the case where $ \lambda_0 $ takes on positive value. Suppose all true parameters $ \theta_1, \ldots, \theta_p $ are non-zero, lasso estimate is unfortunately biased, and the amount of bias  depends on the vector $ \bm{u} $ and the signs of each element in the vector of true parameter $ \bm{\theta} $. By assumption in Theorem 1, the null space of C is the space of vectors $ \bm{u} $ with $ u_1 + \ldots + u_p = 0 $, therefore $ {\normalfont Bias}(\hat{\bm{\theta}}_n) = 0 $ if true parameters all have the same sign. In another example case where $ \theta_1 \neq 0 $ and $ \theta_2 = \ldots = \theta_p = 0 $, the joint limiting distribution of $ b_n(\hat{\bm{\theta}}_{nj} - \theta_j) $ for $ p = 2, \ldots, p $ will have positive probability mass at $ \bm{0} $. Since the limiting distribution lies in the null space of $ C $ as in \eqref{eq:4}, $ b_n(\hat{\theta}_{n1} - \theta_1) $ is implied to have positive probability mass at 0 \citep{knight2008shrinkage}. This indicates possible asymptotic bias in the estimates of non-zero parameters. Another downside of singularity in the limit is the slower convergence rate of estimates to their limiting distributions due to $ a_n \rightarrow \infty $ and $ b_n = (n/a_n)^{1/2} $ hence $ b_n $ is only of $ o(\sqrt{n}) $. The exact margin however, still depends strongly on the growth rate of $ n_n $.
+
+\textbf{MIXED ROOT} Aside from near-singular design matrix, unknown degree of persistence also poses problems with not only OLS, but also with lasso. In the presence of possible unit roots (exact roots are unknown) in regressors, OLS estimates is bias in the limit due to serial dependence in the innovations. With lasso, the variable screening effect is very sensitive to the choice of tuning parameter, and each set of regressors is affected differently (\textbf{Corollary 3.7} and \textbf{Remark 3.8}, \cite{lee2018lasso}). As expected, when $ \lambda_0 = 0 $, lasso's limiting distribution collides with that of OLS since no selection takes place anymore. More interesting are cases where $ \lambda_0 \neq 0 $. For $ \lambda_0 \in (0, \infty) $, only the set of stationary receives selection. In this setting, $ \lambda_0 $ is still too small to have an effect on non-stationary part. Choosing the sequence to growth even faster, where  $ \lambda_n/\sqrt{n} \rightarrow \infty $ and $ \lambda_n/n \rightarrow 0 $, drags down convergence rate of estimates for the stationary set while still does not hit non-stationary set. Raising growth rate further however starts to introduce inconsistency (\textbf{Lemma 3}, \cite{zou2006adaptive}).
+
+\textbf{ADAPTIVE LASSO} Introduced by \cite{zou2006adaptive}, alasso is designed to overcome possible inconsistencies in variable selection of lasso. Alasso involves applying individual weight to the tuning parameter of each regressor. The objective function of alasso is defined as:
+\begin{equation}\label{eq:7}
+	% \bm{\hat{\theta}}_{alasso} = 
+	% \underset{\bm{\theta \in \mathbb{R}^p}}{\argmin}
+	\sum_{i = 1}^n(y_i - \bm{w}_i'\bm{\theta})^2 + 
+	\lambda_n\sum_{j = 1}^p \hat{\tau}_j \vert\theta_j\vert,
+\end{equation}
+where $ \hat{\tau}_j $ is the individual weight for the corresponding regressor $ j $.
+--- what is the weight suggested? 
+Why is it OLS? (lee) 
+Present Oracle properties and condition for it
+Oracle properties in the case of mixed root
+Is the rate for oracle properties appropriate for near-singular design? ---
+
+
+
+
 \section{Simulation study}
 
 \section{Application: Goyal's data set}
