@@ -1,26 +1,27 @@
 #### Main working file
 # ## Package installation
-# install.packages('readxl')
-# install.packages('zoo')
-# install.packages('glmnet')
-# install.packages('tseries')
-# install.packages('caret') 
-# install.packages('Matrix')
-# install.packages('corrplot')
-# install.packages('snow')
+install.packages('readxl')
+install.packages('zoo')
+install.packages('glmnet')
+install.packages('tseries')
+install.packages('caret')
+install.packages('Matrix')
+install.packages('corrplot')
+install.packages('snow')
+install.packages('foreach')
 
 # ## Call packages
-# library('readxl')
-# library('zoo')
-# library('glmnet')
-# library('Matrix')
-# library('tseries')
-# library('caret')
-# library('Matrix')
-# library('corrplot')
-# library(parallel)
-# library(snow)
-# library('MASS')
+library('readxl')
+library('zoo')
+library('glmnet')
+library('Matrix')
+library('tseries')
+library('caret')
+library('Matrix')
+library('corrplot')
+library(parallel)
+library(snow)
+library('MASS')
 
 ### Functions:
 source('myfun.R')
@@ -102,8 +103,9 @@ for (i in 1:ncol(var.all)){
 
 y <- var.premium
 n <- length(y)
-# y.1_12 <- var.premium[480:n]
-y.1_12 <- var.premium[1:160]
+y.1_12 <- var.premium
+# y.1_12 <- var.premium[480:n] # 50 latest years
+# y.1_12 <- var.premium[1:160]
 y.1_4 <- fun.horizon.transform(y.1_12, 1/4)
 y.1_2 <- fun.horizon.transform(y.1_12, 1/2)
 y.1 <- fun.horizon.transform(y.1_12, 1)
@@ -111,8 +113,9 @@ y.2 <- fun.horizon.transform(y.1_12, 2)
 y.3 <- fun.horizon.transform(y.1_12, 3)
 
 x <- scale(var.all.lag, TRUE, TRUE)
-# x.1_12 <- scale(var.all.lag, TRUE, TRUE)[480:n, ]
-x.1_12 <- scale(var.all.lag, TRUE, TRUE)[1:160, ]
+x.1_12 <- scale(var.all.lag, TRUE, TRUE)
+# x.1_12 <- scale(var.all.lag, TRUE, TRUE)[480:n, ] # 50 latest years
+# x.1_12 <- scale(var.all.lag, TRUE, TRUE)[1:160, ]
 x.1_4 <- x.1_12[1:length(y.1_4), ]
 x.1_2 <- x.1_12[1:length(y.1_2), ]
 x.1 <- x.1_12[1:length(y.1), ]
@@ -201,8 +204,33 @@ lasso.mspe.10 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(
 alasso.mspe.12 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.alasso.result.12[[i]]$mspe)
 lasso.mspe.12 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.lasso.result.12[[i]]$mspe)
 
+### Performing OLS
 
 
+par.ols.result.10 <- lapply(horizon.setting, 
+                            function(a) fun.ols.emp(get(paste('y.', a, sep = '')), get(paste('x.', a, sep = '')),
+                                                    window = 10, horizon = 1))
+par.ols.result.12 <- lapply(horizon.setting, 
+                            function(a) fun.ols.emp(get(paste('y.', a, sep = '')), get(paste('x.', a, sep = '')),
+                                                    window = 12, horizon = 1))
+ols.mspe.10 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.ols.result.10[[i]]$mspe)
+ols.mspe.12 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.ols.result.12[[i]]$mspe)
+
+### Performing RWwD
+
+par.rw.result.10 <- lapply(horizon.setting, 
+                           function(a) fun.rw.emp(get(paste('y.', a, sep = '')), window = 10, horizon = 1))
+par.rw.result.12 <- lapply(horizon.setting, 
+                           function(a) fun.rw.emp(get(paste('y.', a, sep = '')), window = 12, horizon = 1))
+rw.mspe.10 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.rw.result.10[[i]])
+rw.mspe.12 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.rw.result.12[[i]])
 
 
+### Displaying results
+emp.result.10 <- data.frame(ols = ols.mspe.10, rwwd = rw.mspe.10,
+                            alasso = alasso.mspe.10, lasso = lasso.mspe.10)
+rownames(emp.result.10) <- paste(horizon.setting)
 
+emp.result.12 <- data.frame(ols = ols.mspe.12, rwwd = rw.mspe.12,
+                            alasso = alasso.mspe.12, lasso = lasso.mspe.12)
+rownames(emp.result.12) <- paste(horizon.setting)
