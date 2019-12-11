@@ -56,7 +56,7 @@ fun.cv.lasso <- function(y, x, lambda, kf, pen.factor = TRUE, pen.type){ # calcu
       if ('lm' %in% pen.type) {
         penalty <- (1 / abs(lm(y.train ~ x.train)$coefficients[-1])) ^ 1
       } else if ('ridge' %in% pen.type) {
-        ridge <- glmnet(x.train, y.train, alpha = 0, nlambda = 50)
+        ridge <- glmnet(x.train, y.train, alpha = 0, nlambda = 50, standardize = FALSE)
         ridge.coef <- coef(ridge, s = 1e-10, exact = TRUE, x = x.train, y = y.train)[- 1]
         penalty <- (1 / abs(ridge.coef)) ^ 1
       } else {
@@ -65,11 +65,15 @@ fun.cv.lasso <- function(y, x, lambda, kf, pen.factor = TRUE, pen.type){ # calcu
       
       penalty <- p * penalty / sum(penalty)
       x.train <- scale(x.train, FALSE, penalty)
+      # capture all NA, NaN, Inf and setting them to 0
+      x.train[is.na(x.train)] <- 0
+      x.train[is.nan(x.train)] <- 0
+      x.train[is.infinite(x.train)] <- 0
       x.val <- scale(x.val, FALSE, penalty)
     } else {
       penalty <- NULL
     }
-    fit <- glmnet(x.train, y.train, nlambda = 50)
+    fit <- glmnet(x.train, y.train, nlambda = 50, standardize = FALSE)
     y.hat <- predict.glmnet(fit, x.val, s = lambda, exact = TRUE, 
                             x = x.train, y = y.train)
     mspe.mat[i] <- fun.mse(y.val, y.hat)

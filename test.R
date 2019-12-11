@@ -108,21 +108,122 @@ adf.test(dgp2.test.1000$x[, 8])
 adf.test(dgp2.test.1000$x[, 9])
 
 
-require(stats)
-centre <- function(x, type) {
-  switch(type,
-         mean = sum(x),
-         median = median(x),
-         trimmed = mean(x, trim = .1))
+tic()
+emp.test <- fun.lasso.predict(y.1_12, x.1_12)
+toc()
+
+tic()
+emp.test1 <- fun.cv.lasso(y.1_12[2:121], x.1_12[2:121, ], lambda = 0.12, kf = 10, pen.factor = TRUE, pen.type = 'ridge')
+toc()
+
+
+test.obj <- rep(NA, 500)
+tic()
+for (i in 1:(500 - 120)){
+  test.obj[i] <- mean(sapply(seq(from = 0.001, to = 0.3, length.out = 5), 
+                             function(s) fun.cv.lasso(y.1_12[i:(i + 120 - 1)], x.1_12[i:(i + 120 - 1), ], kf = 5, 
+                                                      lambda = s, pen.factor = TRUE, pen.type = 'ridge')))
 }
-x <- rcauchy(10)
-a <- centre(x, "sum")
-centre(x, "median")
-centre(x, "trimmed")
+toc()
 
 
-fun.test <- function(x, type = c('sum', 'mean', 'median')){
-  if (type == 'sum') {
-    
+a <- c(1:6, NA, 7, NA, 8:10)
+a[is.na(a)] <- 0
+a
+
+#### DEBUGGING NOTE:
+# After reading the error trace back, I know that something is wrong with the CV function.
+# Specifically, something is wrong with the scaling, since lasso is unaffected but alasso is affected.
+
+### First I set up a test function to record the scaled matrix of predictors x
+
+fun.cv.test <- function(y, x, lambda, kf, pen.factor = TRUE, pen.type){ # calculate k-fold CV mspe
+  n.obs <- length(y)
+  p <- ncol(x)
+  cv.index <- fun.ts.split(y, k = kf)
+  n.trainset <- length(cv.index$train)
+  n.valset <- length(cv.index$val)
+  mspe.mat <- rep(1, n.valset)
+  x.train.all <- list()
+  x.val.all <- list()
+  
+  
+  for (i in 1:n.trainset) {
+    y.train <- y[cv.index$train[[i]]]
+    y.val <- y[cv.index$val[[i]]]
+    x.train <- x[cv.index$train[[i]], ]
+    x.val <- x[cv.index$val[[i]], ]
+    # Check penalty factor
+    if (pen.factor){
+      if ('lm' %in% pen.type) {
+        penalty <- (1 / abs(lm(y.train ~ x.train)$coefficients[-1])) ^ 1
+      } else if ('ridge' %in% pen.type) {
+        ridge <- glmnet(x.train, y.train, alpha = 0, nlambda = 50)
+        ridge.coef <- coef(ridge, s = 1e-10, exact = TRUE, x = x.train, y = y.train)[- 1]
+        penalty <- (1 / abs(ridge.coef)) ^ 1
+      } else {
+        stop('Error: imput either lm or ridge for penalty factor calculation')
+      }
+      
+      penalty <- p * penalty / sum(penalty)
+      x.train <- scale(x.train, FALSE, penalty)
+      # capture all NA, NaN, Inf and setting them to 0
+      x.train[is.na(x.train)] <- 0
+      x.train[is.nan(x.train)] <- 0
+      x.train[is.infinite(x.train)] <- 0
+      x.val <- scale(x.val, FALSE, penalty)
+      x.val[is.na(x.val)] <- 0
+      x.val[is.nan(x.val)] <- 0
+      x.val[is.infinite(x.val)] <- 0
+    } else {
+      penalty <- NULL
+    }
+    x.train.all[[i]] <- x.train
+    x.val.all[[i]] <- x.val
+  }
+  return(list(train = x.train.all, val = x.val.all))
+}
+
+### Second, I check for zeroes in the matrix, as I have modified the CV lasso function to give zero at NA, NaN, and Inf values
+
+
+test.mat1 <- matrix(NA, ncol = 10, nrow = 380)
+test.mat2 <- matrix(NA, ncol = 10, nrow = 380)
+test.list <- list()
+tic()
+for (i in 1:(500 - 120)){
+  temp.list <- lapply(seq(from = 0.001, to = 0.3, length.out = 5), 
+                             function(s) fun.cv.test(y.1_12[i:(i + 120 - 1)], x.1_12[i:(i + 120 - 1), ], kf = 10, 
+                                                      lambda = s, pen.factor = TRUE, pen.type = 'ridge'))
+  test.list[[i]] <- temp.list
+  for (j in 1:5){
+    test.mat1[i, ] <- sum(foreach(k = 1:10, .combine = 'c') %do% sum(temp.list[[j]][["train"]][[k]] == 0))
+    test.mat2[i, ] <- sum(foreach(k = 1:10, .combine = 'c') %do% sum(temp.list[[j]][["val"]][[k]] == 0))
   }
 }
+toc()
+
+sum(test.mat1)
+sum(test.mat2)
+# Apparently, something is wrong with these, as there are almost all zeros in the range of data from row 186 to 235.
+# We can see it here
+test.mat1[185:236]
+test.mat2[185:236]
+
+### Next, I check the weighted data (ridge weight) at the same range above to see if I am right
+View(test.list[186])
+# Here, some folds are all zeros, which indicate either NA, NaN, or Inf
+# Take a look at the scale attribute reveals that all scales are 0, except for one NaN, which correspond to predictor tbl,
+#   which is the T-bill rate.
+x[186:245, 8]
+
+# The T-bill rate is surprisingly constant in this time. Since we use 10-fold fixed rolling window CV with train set
+#   of size 120, each train set only starts from 11 obs at fold 1, to 110 obs at fold 10. The length of 'constant tbl'
+#   period is 59 (months), so it is understandable that some folds consist of most to all of this period.
+ridge.test <- glmnet(x[186:245, ], y[186:245], alpha = 0)
+ridge.coef.test <- coef.glmnet(ridge.test, s = 1e-8)
+lm.test <- lm(y[186:245] ~ x[186:245, ])
+
+
+
+### We then need to solve this problem
