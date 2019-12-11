@@ -19,9 +19,10 @@ library('tseries')
 library('caret')
 library('Matrix')
 library('corrplot')
-library(parallel)
-library(snow)
+library('parallel')
+library('snow')
 library('MASS')
+library('tictoc')
 
 ### Functions:
 source('myfun.R')
@@ -99,7 +100,14 @@ for (i in 1:ncol(var.all)){
 
 ### Performing LASSO
 ## Prepare and scale variables for each settings
-
+## DEBUGGING PART. PLEASE REFER TO TEST FILE
+var.all.lag[186:245, 8]
+tbl.alt<- rep(NA, 60)
+for (i in 60:1){
+  tbl.alt[i] <- mean(var.all.lag[(186 - i - 1):(245 - i - 1), 8])
+}
+var.all.lag[186:245, 8] <- rev(tbl.alt)
+## END
 
 y <- var.premium
 n <- length(y)
@@ -121,6 +129,7 @@ x.1_2 <- x.1_12[1:length(y.1_2), ]
 x.1 <- x.1_12[1:length(y.1), ]
 x.2 <- x.1_12[1:length(y.2), ]
 x.3 <- x.1_12[1:length(y.3), ]
+
 
 horizon.setting <- c('1_12', '1_4', '1_2', '1', '2', '3')
 
@@ -168,7 +177,7 @@ print(alasso.optim$message)
 
 # Using parallel apply to speed up. Still very long to run
 
-cl <- parallel::makeCluster(detectCores() - 1)
+cl <- parallel::makePSOCKcluster(detectCores() - 1)
 # on.exit(parallel::stopCluster(cl), add = TRUE)
 envir <- environment(fun.lasso.predict)
 parallel::clusterExport(cl, varlist = ls(envir), envir = envir)

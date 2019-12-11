@@ -340,4 +340,61 @@ fun.rw.emp <- function(y, window = 10, horizon = 1){
   return(mspe)
 }
 
-
+fun.lasso.predict.par <- function(cl, y, x, pen.factor = TRUE, pen.type = 'ridge', 
+                              window = 10, horizon = 1, 
+                              init.val = 0.01){
+  ## Splitting data into rolling windows
+  index.roll <- createTimeSlices(y, initialWindow = 12 * window, horizon = horizon)
+  n.test <- length(index.roll$test)
+  p <- ncol(x)
+  mspe <- rep(NA, n.test)
+  lambda <- rep(NA, n.test)
+  coef <- matrix(NA, nrow = n.test, ncol = p)
+  
+  result <- parLapply(cl, c(1:n.test), function(i) {
+    x.train <- x[index.roll$train[[i]], ]
+    y.train <- y[index.roll$train[[i]]]
+    x.test <- matrix(x[index.roll$test[[i]], ], nrow = horizon)
+    y.test <- y[index.roll$test[[i]]]
+    # First find lambda by optimizing w.r.t  cv
+    lambda.seq <- sapply(seq(from = 0.001, to = 0.3, length.out = 30),
+                         function(s) fun.cv.lasso(y.train, x.train, kf = 5, lambda = s,
+                                                  pen.factor = pen.factor, pen.type = pen.type))
+    lambda.start <- seq(from = 0.0001, to = 0.3, length.out = 30)[which.min(lambda.seq)]
+    lambda.optim <- optim(par = lambda.start, function(s) fun.cv.lasso(y.train, x.train, lambda = s, kf = 5,
+                                                                       pen.factor = pen.factor, pen.type = pen.type),
+                          method = "L-BFGS-B", lower = 1e-4)$par
+    
+    
+    
+    # Then find the weights
+    if (pen.factor){
+      if ('lm' %in% pen.type) {
+        penalty <- (1 / abs(lm(y.train ~ x.train)$coefficients[-1])) ^ 1
+      } else if ('ridge' %in% pen.type) {
+        ridge <- glmnet(x.train, y.train, alpha = 0, nlambda = 50)
+        penalty <- (1 / abs(coef(ridge, s = 1e-10, exact = TRUE, x = x.train, y = y.train)[- 1])) ^ 1
+      } else {
+        stop('Error: input either lm or ridge for penalty factor calculation')
+      }
+      
+      penalty <- p * penalty / sum(penalty)
+      x.train <- scale(x.train, FALSE, penalty)
+      x.test <- scale(x.test, FALSE, penalty)
+    } else {
+      penalty <- NULL
+    }
+    
+    # Fit lasso/alasso
+    fit <- glmnet(x.train, y.train, nlambda = 50)
+    y.hat <- predict.glmnet(fit, x.test, s = lambda.optim, exact = TRUE, x = x.train, y = y.train)
+    mspe[i] <- fun.mse(y.hat, y.test)
+    coef[i, ] <- coef(fit, s = lambda.optim, exact = TRUE, x = x.train, y = y.train)[- 1]
+    lambda[i] <- lambda.optim
+    return(list(mspe = mspe, coef = coef, lambda = lambda))
+  })
+  mspe <- foreach(i = 1:n.test, .combine = c) %do% result[[i]]$mspe
+  coef <- foreach(i = 1:n.test, .combine = rbind) %do% result[[i]]$coef
+  lambda <- foreach(i = 1:n.test, .combine = c) %do% result[[i]]$lambda
+  return(list(mspe = mspe, coef = coef, lambda = lambda))
+}
