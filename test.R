@@ -131,6 +131,8 @@ a <- c(1:6, NA, 7, NA, 8:10)
 a[is.na(a)] <- 0
 a
 
+
+
 #### DEBUGGING NOTE:
 # After reading the error trace back, I know that something is wrong with the CV function.
 # Specifically, something is wrong with the scaling, since lasso is unaffected but alasso is affected.
@@ -215,15 +217,60 @@ View(test.list[186])
 # Here, some folds are all zeros, which indicate either NA, NaN, or Inf
 # Take a look at the scale attribute reveals that all scales are 0, except for one NaN, which correspond to predictor tbl,
 #   which is the T-bill rate.
-x[186:245, 8]
+var.all.lag[186:245, 8]
 
 # The T-bill rate is surprisingly constant in this time. Since we use 10-fold fixed rolling window CV with train set
 #   of size 120, each train set only starts from 11 obs at fold 1, to 110 obs at fold 10. The length of 'constant tbl'
 #   period is 59 (months), so it is understandable that some folds consist of most to all of this period.
 ridge.test <- glmnet(x[186:245, ], y[186:245], alpha = 0)
-ridge.coef.test <- coef.glmnet(ridge.test, s = 1e-8)
+ridge.coef.test <- 1 / abs(coef.glmnet(ridge.test, s = 1e-8)[- 1])
+
+pen.test <- ncol(x) * ridge.coef.test / sum(ridge.coef.test) 
 lm.test <- lm(y[186:245] ~ x[186:245, ])
+coef(lm.test)
 
 
 
 ### We then need to solve this problem
+## The most apparent choice here is to omit the data altogether, starting the data from point t = 246.
+##  However, this is not ideal because we effectively omit 1/5 of our data. That is about more than 20 years of data
+##  for only 5 years of constant values.
+## The solution is that we will try to follow here will be about replacing the troublesome parts with its
+##  historical moving average of 20 years
+
+var.all.lag[180:245, 8]
+check <- rep(NA, 60)
+for (i in 60:1){
+  check[i] <- mean(var.all.lag[(186 - i - 1):(245 - i - 1), 8])
+}
+rev(check)
+
+## Another solution is that we will add a random term \epsilon ~ N(mu, sigma^2) to the data
+##  where mu and sigma^2 are the mean and variance of tbl for the 10-year period of tbl, from 186 - 30 to 245 + 30
+
+eps <- rnorm(60, mean = mean(var.all.lag[(186 - 30):(245 + 30), 8]), sd = sqrt(var(var.all.lag[(186 - 30):(245 + 30), 8])))
+var.all.lag[186:245, 8] + eps
+
+##### Another test for parallelization
+cl <- parallel::makePSOCKcluster(parallel::detectCores() - 1)
+parallel::setDefaultCluster(cl = cl)
+# on.exit(parallel::stopCluster(cl), add = TRUE)
+envir <- environment(fun.lasso.predict)
+parallel::clusterExport(cl, varlist = ls(envir), envir = envir)
+
+
+tic()
+par.alasso.test <- parLapply(cl, horizon.setting,
+                                  function(a) fun.lasso.predict.par(cl, get(paste('y.', a, sep = '')), get(paste('x.', a, sep = '')),
+                                                                init.val = 0.03))
+toc()
+stopCluster(cl)
+
+tic()
+test1 <- fun.lasso.predict.par(cl, y.1_12, x.1_12, init.val = 0.03)
+toc()
+
+tic()
+fun.lasso.predict(y.1_12, x.1_12, init.val = 0.03)
+toc()
+

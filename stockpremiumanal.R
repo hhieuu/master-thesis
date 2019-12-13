@@ -9,6 +9,7 @@ install.packages('Matrix')
 install.packages('corrplot')
 install.packages('snow')
 install.packages('foreach')
+install.packages('tictoc')
 
 # ## Call packages
 library('readxl')
@@ -19,9 +20,11 @@ library('tseries')
 library('caret')
 library('Matrix')
 library('corrplot')
-library(parallel)
-library(snow)
+library('parallel')
+library('snow')
 library('MASS')
+library('tictoc')
+library('foreach')
 
 ### Functions:
 source('myfun.R')
@@ -99,7 +102,14 @@ for (i in 1:ncol(var.all)){
 
 ### Performing LASSO
 ## Prepare and scale variables for each settings
-
+## DEBUGGING PART. PLEASE REFER TO TEST FILE
+var.all.lag[186:245, 8]
+tbl.alt<- rep(NA, 60)
+for (i in 60:1){
+  tbl.alt[i] <- mean(var.all.lag[(186 - i - 1):(245 - i - 1), 8])
+}
+var.all.lag[186:245, 8] <- rev(tbl.alt)
+## END
 
 y <- var.premium
 n <- length(y)
@@ -112,8 +122,8 @@ y.1 <- fun.horizon.transform(y.1_12, 1)
 y.2 <- fun.horizon.transform(y.1_12, 2)
 y.3 <- fun.horizon.transform(y.1_12, 3)
 
-x <- scale(var.all.lag, TRUE, TRUE)
-x.1_12 <- scale(var.all.lag, TRUE, TRUE)
+x <- var.all.lag
+x.1_12 <- var.all.lag
 # x.1_12 <- scale(var.all.lag, TRUE, TRUE)[480:n, ] # 50 latest years
 # x.1_12 <- scale(var.all.lag, TRUE, TRUE)[1:160, ]
 x.1_4 <- x.1_12[1:length(y.1_4), ]
@@ -121,6 +131,7 @@ x.1_2 <- x.1_12[1:length(y.1_2), ]
 x.1 <- x.1_12[1:length(y.1), ]
 x.2 <- x.1_12[1:length(y.2), ]
 x.3 <- x.1_12[1:length(y.3), ]
+
 
 horizon.setting <- c('1_12', '1_4', '1_2', '1', '2', '3')
 
@@ -139,10 +150,10 @@ coef.ridge
 # As a first step, we will try to examine the path of cv.mspe given lambda path.
 
 tic()
-alasso.optim.mse <- sapply(seq(from = 0.0001, to = 0.3, length.out = 200), 
-                           function(s) fun.cv.lasso(y.1, x.1, kf = 5, lambda = s, pen.factor = TRUE, pen.type = 'ridge'))
-plot(1:length(alasso.optim.mse), alasso.optim.mse, type = 'l')
-alasso.lambda.min <- seq(from = 0.0001, to = 0.3, length.out = 200)[which.min(alasso.optim.mse)]
+alasso.optim.mse <- sapply(seq(from = 0.0001, to = 0.5, length.out = 100), 
+                           function(s) fun.cv.lasso(y.1_12, x.1_12, kf = 5, lambda = s, pen.factor = TRUE, pen.type = 'ridge'))
+alasso.lambda.min <- seq(from = 0.0001, to = 0.5, length.out = 100)[which.min(alasso.optim.mse)]
+plot(seq(from = 0.0001, to = 0.5, length.out = 100), alasso.optim.mse, type = 'l')
 which.min(alasso.optim.mse)
 print(alasso.lambda.min)
 
@@ -150,25 +161,21 @@ print(alasso.lambda.min)
 # Therefore, optimization algorithms is very volatile and dependent on given initial value.
 # After the examination above, we will set initial value for optimization to a value close to min (0.01).
 # Reader can try and change the initial value below to see the volatility
+emp.scale <- TRUE
 
 alasso.optim <- optim(par = alasso.lambda.min, 
-                      function(a) fun.cv.lasso(y.1, x.1, kf = 5, lambda = a, pen.factor = TRUE, pen.type = 'ridge'),
+                      function(a) fun.cv.lasso(y.1_12, x.1_12, 
+                                               kf = 5, lambda = a, 
+                                               pen.factor = TRUE, pen.type = 'ridge',
+                                               scale = emp.scale),
                       method = "L-BFGS-B", lower = 0.0001)
 toc()
 print(alasso.optim$par)
 print(alasso.optim$message)
 
+## Getting to the real beef.
 
-
-# tic()
-# test.pred <- fun.lasso.predict(y.1, x.1)
-# toc() # 10395 secs to run for full data
-# mean(test.pred$mspe) 
-# length(test.pred$mspe)
-
-# Using parallel apply to speed up. Still very long to run
-
-cl <- parallel::makeCluster(detectCores() - 1)
+cl <- parallel::makePSOCKcluster(detectCores() - 1)
 # on.exit(parallel::stopCluster(cl), add = TRUE)
 envir <- environment(fun.lasso.predict)
 parallel::clusterExport(cl, varlist = ls(envir), envir = envir)
@@ -177,53 +184,62 @@ parallel::setDefaultCluster(cl = cl)
 tic()
 par.alasso.result.10 <- parLapply(cl, horizon.setting,
                                function(a) fun.lasso.predict(get(paste('y.', a, sep = '')), get(paste('x.', a, sep = '')),
-                                                             init.val = 0.03))
+                                                             pen.factor = TRUE, pen.type = 'ridge', 
+                                                             scale = emp.scale))
 toc()
 
 tic()
 par.lasso.result.10 <- parLapply(cl, horizon.setting,
                                function(a) fun.lasso.predict(get(paste('y.', a, sep = '')), get(paste('x.', a, sep = '')),
-                                                             pen.factor = FALSE, init.val = 0.04))
+                                                             pen.factor = FALSE, 
+                                                             scale = emp.scale))
 toc()
 
 tic()
-par.alasso.result.12 <- parLapply(cl, horizon.setting,
+par.alasso.result.15 <- parLapply(cl, horizon.setting,
                                   function(a) fun.lasso.predict(get(paste('y.', a, sep = '')), get(paste('x.', a, sep = '')),
-                                                                window = 12, init.val = 0.03))
+                                                                pen.factor = TRUE, pen.type = 'ridge', window = 15,
+                                                                scale = emp.scale))
 toc()
 
 tic()
-par.lasso.result.12 <- parLapply(cl, horizon.setting,
+par.lasso.result.15 <- parLapply(cl, horizon.setting,
                                  function(a) fun.lasso.predict(get(paste('y.', a, sep = '')), get(paste('x.', a, sep = '')),
-                                                               pen.factor = FALSE, window = 12, init.val = 0.03))
+                                                               pen.factor = FALSE, window = 15,
+                                                               scale = emp.scale))
 toc()
 stopCluster(cl)
 
 alasso.mspe.10 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.alasso.result.10[[i]]$mspe)
 lasso.mspe.10 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.lasso.result.10[[i]]$mspe)
-alasso.mspe.12 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.alasso.result.12[[i]]$mspe)
-lasso.mspe.12 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.lasso.result.12[[i]]$mspe)
+alasso.mspe.15 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.alasso.result.15[[i]]$mspe)
+lasso.mspe.15 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.lasso.result.15[[i]]$mspe)
+
+alasso.sel.rate.10 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.alasso.result.10[[i]]$mspe)
+
 
 ### Performing OLS
 
 
 par.ols.result.10 <- lapply(horizon.setting, 
                             function(a) fun.ols.emp(get(paste('y.', a, sep = '')), get(paste('x.', a, sep = '')),
-                                                    window = 10, horizon = 1))
-par.ols.result.12 <- lapply(horizon.setting, 
+                                                    window = 10, horizon = 1,
+                                                    scale = emp.scale))
+par.ols.result.15 <- lapply(horizon.setting, 
                             function(a) fun.ols.emp(get(paste('y.', a, sep = '')), get(paste('x.', a, sep = '')),
-                                                    window = 12, horizon = 1))
+                                                    window = 15, horizon = 1,
+                                                    scale = emp.scale))
 ols.mspe.10 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.ols.result.10[[i]]$mspe)
-ols.mspe.12 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.ols.result.12[[i]]$mspe)
+ols.mspe.15 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.ols.result.15[[i]]$mspe)
 
 ### Performing RWwD
 
 par.rw.result.10 <- lapply(horizon.setting, 
                            function(a) fun.rw.emp(get(paste('y.', a, sep = '')), window = 10, horizon = 1))
-par.rw.result.12 <- lapply(horizon.setting, 
-                           function(a) fun.rw.emp(get(paste('y.', a, sep = '')), window = 12, horizon = 1))
-rw.mspe.10 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.rw.result.10[[i]])
-rw.mspe.12 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.rw.result.12[[i]])
+par.rw.result.15 <- lapply(horizon.setting, 
+                           function(a) fun.rw.emp(get(paste('y.', a, sep = '')), window = 15, horizon = 1))
+rw.mspe.10 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.rw.result.10[[i]]$mspe)
+rw.mspe.15 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.rw.result.15[[i]]$mspe)
 
 
 ### Displaying results
@@ -231,6 +247,6 @@ emp.result.10 <- data.frame(ols = ols.mspe.10, rwwd = rw.mspe.10,
                             alasso = alasso.mspe.10, lasso = lasso.mspe.10)
 rownames(emp.result.10) <- paste(horizon.setting)
 
-emp.result.12 <- data.frame(ols = ols.mspe.12, rwwd = rw.mspe.12,
-                            alasso = alasso.mspe.12, lasso = lasso.mspe.12)
-rownames(emp.result.12) <- paste(horizon.setting)
+emp.result.15 <- data.frame(ols = ols.mspe.15, rwwd = rw.mspe.15,
+                            alasso = alasso.mspe.15, lasso = lasso.mspe.15)
+rownames(emp.result.15) <- paste(horizon.setting)

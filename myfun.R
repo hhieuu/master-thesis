@@ -38,26 +38,35 @@ fun.horizon.transform <- function(y, horizon = 1/12){
 
 #### Lasso/alasso functions: ----
 
-fun.cv.lasso <- function(y, x, lambda, kf, pen.factor = TRUE, pen.type){ # calculate k-fold CV mspe
+fun.cv.lasso <- function(y, x, lambda, kf, 
+                         pen.factor = TRUE, pen.type = 'lm',
+                         scale = TRUE){ # calculate k-fold CV mspe
   n.obs <- length(y)
   p <- ncol(x)
   cv.index <- fun.ts.split(y, k = kf)
   n.trainset <- length(cv.index$train)
   n.valset <- length(cv.index$val)
   mspe.mat <- rep(1, n.valset)
-
+  
   for (i in 1:n.trainset) {
     y.train <- y[cv.index$train[[i]]]
     y.val <- y[cv.index$val[[i]]]
     x.train <- x[cv.index$train[[i]], ]
     x.val <- x[cv.index$val[[i]], ]
+    # Scale if applicable
+    if (scale) {
+      train.mean <- colMeans(x.train)
+      train.sd <- foreach(j = 1:p, .combine = c) %do% sd(x.train[, j])
+      x.train <- scale(x.train, TRUE, TRUE)
+      x.val <- scale(x.val, train.mean, train.sd)
+    }
     # Check penalty factor
     if (pen.factor){
       if ('lm' %in% pen.type) {
         penalty <- (1 / abs(lm(y.train ~ x.train)$coefficients[-1])) ^ 1
       } else if ('ridge' %in% pen.type) {
         ridge <- glmnet(x.train, y.train, alpha = 0, nlambda = 50, standardize = FALSE)
-        ridge.coef <- coef(ridge, s = 1e-10, exact = TRUE, x = x.train, y = y.train)[- 1]
+        ridge.coef <- coef(ridge, s = 1e-8)[- 1]
         penalty <- (1 / abs(ridge.coef)) ^ 1
       } else {
         stop('Error: imput either lm or ridge for penalty factor calculation')
@@ -65,10 +74,6 @@ fun.cv.lasso <- function(y, x, lambda, kf, pen.factor = TRUE, pen.type){ # calcu
       
       penalty <- p * penalty / sum(penalty)
       x.train <- scale(x.train, FALSE, penalty)
-      # capture all NA, NaN, Inf and setting them to 0
-      x.train[is.na(x.train)] <- 0
-      x.train[is.nan(x.train)] <- 0
-      x.train[is.infinite(x.train)] <- 0
       x.val <- scale(x.val, FALSE, penalty)
     } else {
       penalty <- NULL
@@ -83,7 +88,9 @@ fun.cv.lasso <- function(y, x, lambda, kf, pen.factor = TRUE, pen.type){ # calcu
 
 
 
-fun.optim.lambda <- function(sample, start.val, pen.factor = TRUE, pen.type = 'lm'){
+fun.optim.lambda <- function(sample, start.val, 
+                             pen.factor = TRUE, pen.type = 'lm',
+                             scale = TRUE){
   n.sim <- length(sample)/2
   y.all <- sample[seq(from = 1, to = length(sample), by = 2)]
   x.all <- sample[seq(from = 2, to = length(sample), by = 2)]
@@ -91,7 +98,8 @@ fun.optim.lambda <- function(sample, start.val, pen.factor = TRUE, pen.type = 'l
   for (i in 1:n.sim){
     optim.tmp <- optim(par = start.val, 
                        function(a) fun.cv.lasso(y.all[[i]], x.all[[i]], kf = 10, lambda = a, 
-                                                pen.factor = pen.factor, pen.type = 'lm'),
+                                                pen.factor = pen.factor, pen.type = 'lm',
+                                                scale = scale),
                        method = "L-BFGS-B", lower = 0.001)
     optim.lambda[i, 1] <- optim.tmp$par
     optim.lambda[i, 2] <- optim.tmp$value
@@ -100,14 +108,16 @@ fun.optim.lambda <- function(sample, start.val, pen.factor = TRUE, pen.type = 'l
 }
 
 
-fun.fit.lasso.all <- function(data, c_lambda, pen.factor = TRUE) {
+fun.fit.lasso.all <- function(data, c_lambda, 
+                              pen.factor = TRUE, pen.type = 'lm', 
+                              scale = TRUE) {
   n.rep <- length(data) / 2
   setting <- length(data[[1]])
-  p <- nrow(data[[2]])
+  p <- ncol(data[[2]])
   test.portion <- .1
   train.portion <- 1 - test.portion
   y.list <- data[seq(from = 1, to = length(data), by = 2)]
-  x.list <- data[seq(from = 0, to = length(data), by = 2)]
+  x.list <- data[seq(from = 2, to = length(data), by = 2)]
   index <- fun.train.test.split(1:setting, test.portion = test.portion)
   fit.list <- list()
   beta <- Matrix(0, nrow = n.rep, ncol = ncol(x.list[[1]]), sparse = T)
@@ -116,21 +126,35 @@ fun.fit.lasso.all <- function(data, c_lambda, pen.factor = TRUE) {
   # Lambda
   if (pen.factor) {
     lambda <- c_lambda * (setting * train.portion) ^ (1 / 2) / log(log(setting * train.portion))
+    # lambda <- c_lambda * (setting * train.portion) ^ (1 / 2) / log(setting * train.portion)
   } else {
-    # lambda <- c_lambda * log(setting) / log(log(setting))
     lambda <- c_lambda * (setting * train.portion) ^ (1 / 2)
   }
   
   for (i in 1:n.rep) {
-    x.train <- x.list[[i]][index$train, ]
     y.train <- y.list[[i]][index$train]
-    
-    x.test <- as.matrix(x.list[[i]][index$test, ])
     y.test <- y.list[[i]][index$test]
-    
+    x.train <- x.list[[i]][index$train, ]
+    x.test <- as.matrix(x.list[[i]][index$test, ])
+    # Scale if applicable
+    if (scale) {
+      train.mean <- colMeans(x.train)
+      train.sd <- foreach(j = 1:p, .combine = c) %do% sd(x.train[, j])
+      x.train <- scale(x.train, TRUE, TRUE)
+      x.test <- scale(x.test, train.mean, train.sd)
+    }
     # Check penalty factor
+    
     if (pen.factor) {
-      penalty <- (1 / abs(lm(y.train ~ x.train)$coefficients[- 1])) ^ 1
+      if ('lm' %in% pen.type) {
+        penalty <- (1 / abs(lm(y.train ~ x.train)$coefficients[-1])) ^ 1
+      } else if ('ridge' %in% pen.type) {
+        ridge <- glmnet(x.train, y.train, alpha = 0, nlambda = 50, standardize = FALSE)
+        ridge.coef <- coef(ridge, s = 1e-8)[- 1]
+        penalty <- (1 / abs(ridge.coef)) ^ 1
+      } else {
+        stop('Error: imput either lm or ridge for penalty factor calculation')
+      }
       penalty <- p * penalty / sum(penalty)
       x.train <- scale(x.train, FALSE, penalty)
       x.test <- scale(x.test, FALSE, penalty)
@@ -139,7 +163,7 @@ fun.fit.lasso.all <- function(data, c_lambda, pen.factor = TRUE) {
     }
     
     fit <- glmnet(x.train, y.train, standardize = FALSE, nlambda = 50)
-    y.hat <- predict.glmnet(fit, x.test, s = lambda / (setting * train.portion), 
+    y.hat <- predict.glmnet(fit, x.test, s = lambda / (setting * train.portion),
                             x = x.train, y = y.train, exact = TRUE)
     mspe[i] <- fun.mse(y.hat, y.test)
     beta[i, ] <- coef(fit, x.test, s = lambda / (setting * train.portion), 
@@ -156,21 +180,26 @@ fun.perf.lasso <- function(beta.true, beta.est, n.sim){
   index.zero.est <- lapply(1:n.sim, function(i) which(beta.est[i, ] == 0))
   index.nonzero.est <- lapply(1:n.sim, function(i) which(beta.est[i, ] != 0))
   
-  # SR1: Percentage of corrent selection
-  sr1 <- sapply(1:n.sim, function(i) sum(index.nonzero.est[[i]] %in% index.nonzero.true) / length(index.nonzero.true))
+  # SR1: Percentage of corrent selection in the active set
+  sr1 <- sapply(1:n.sim, function(i) sum(index.nonzero.est[[i]] %in% 
+                                           index.nonzero.true))
   
   # SR2: percentage of correct elimination of the zero coefficients
-  sr2 <- sapply(1:n.sim, function(i) sum(index.zero.est[[i]] %in% index.zero.true) / length(index.zero.true))
+  sr2 <- sapply(1:n.sim, function(i) sum(index.zero.est[[i]] %in%
+                                           index.zero.true))
   
   # SR: overall success rate of classification into zero coefficients AND non-zero coefficients
   sr <- sapply(1:n.sim, function(i) sum(index.zero.est[[i]] %in% index.zero.true,
-                                        index.nonzero.est[[i]] %in% index.nonzero.true) / length(beta.true))
-  return(matrix(c(mean(sr), mean(sr1), mean(sr2)), nrow = 1, ncol = 3))
+                                        index.nonzero.est[[i]] %in% index.nonzero.true))
+  return(matrix(c(mean(sr) / length(beta.true),
+                  mean(sr1) / length(index.nonzero.true),
+                  mean(sr2)) / length(index.zero.true),
+                nrow = 1, ncol = 3))
 }
 
 #### OLS functions ----
 
-fun.fit.ols.all <- function(data) {
+fun.fit.ols.all <- function(data, scale = TRUE) {
   n.rep <- length(data) / 2
   setting <- length(data[[1]])
   y.list <- data[seq(from = 1, to = length(data), by = 2)]
@@ -185,7 +214,14 @@ fun.fit.ols.all <- function(data) {
     y.train <- y.list[[i]][index$train]
     y.test <- y.list[[i]][index$test]
     x.test <- cbind(1, x.list[[i]][index$test, ])
-
+    # Scale if applicable
+    if (scale) {
+      train.mean <- colMeans(x.train)
+      train.sd <- foreach(j = 1:p, .combine = c) %do% sd(x.train[, j])
+      x.train <- scale(x.train, TRUE, TRUE)
+      x.test <- scale(x.test, train.mean, train.sd)
+    }
+    
     fit <- lm(y.train ~ x.train)
     y.hat <- x.test %*% matrix(coef(fit))
     beta[i, ] <- matrix(fit$coefficients, nrow = 1)
@@ -194,8 +230,8 @@ fun.fit.ols.all <- function(data) {
   return(list(mspe = mean(mspe), beta = beta))
 }
 
-fun.fit.oracle.all <- function(data, beta.true) {
-  
+fun.fit.oracle.all <- function(data, beta.true,
+                               scale = TRUE) {
   n.rep <- length(data) / 2
   setting <- length(data[[1]])
   y.list <- data[seq(from = 1, to = length(data), by = 2)]
@@ -211,7 +247,14 @@ fun.fit.oracle.all <- function(data, beta.true) {
     y.train <- y.list[[i]][index$train]
     y.test <- y.list[[i]][index$test]
     x.test <- cbind(1, x.list[[i]][index$test, index.beta.true])
-
+    # Scale if applicable
+    if (scale) {
+      train.mean <- colMeans(x.train)
+      train.sd <- foreach(j = 1:p, .combine = c) %do% sd(x.train[, j])
+      x.train <- scale(x.train, TRUE, TRUE)
+      x.test <- scale(x.test, train.mean, train.sd)
+    }
+    
     fit <- lm(y.train ~ x.train)
     y.hat <- x.test %*% matrix(coef(fit))
     beta[i, ] <- matrix(fit$coefficients[- 1], nrow = 1)
@@ -245,14 +288,14 @@ fun.fit.ar.all <- function(data, horizon = 1) {
 #### Empirical functions ----
 
 fun.lasso.predict <- function(y, x, pen.factor = TRUE, pen.type = 'ridge', 
-                              window = 10, horizon = 1, 
-                              init.val = 0.01){
+                              window = 10, horizon = 1,
+                              scale = TRUE){
   ## Splitting data into rolling windows
   index.roll <- createTimeSlices(y, initialWindow = 12 * window, horizon = horizon)
   n.test <- length(index.roll$test)
   p <- ncol(x)
   mspe <- rep(NA, n.test)
-  lambda <- rep(NA, n.test)
+  y.hat.mat <- rep(NA, n.test)
   coef <- matrix(NA, nrow = n.test, ncol = p)
   
   for (i in 1:n.test){
@@ -263,25 +306,33 @@ fun.lasso.predict <- function(y, x, pen.factor = TRUE, pen.type = 'ridge',
     # First find lambda by optimizing w.r.t  cv
     lambda.seq <- sapply(seq(from = 0.001, to = 0.3, length.out = 30),
                          function(s) fun.cv.lasso(y.train, x.train, kf = 5, lambda = s,
-                                                  pen.factor = pen.factor, pen.type = pen.type))
+                                                  pen.factor = pen.factor, pen.type = pen.type,
+                                                  scale = scale))
     lambda.start <- seq(from = 0.0001, to = 0.3, length.out = 30)[which.min(lambda.seq)]
     lambda.optim <- optim(par = lambda.start, function(s) fun.cv.lasso(y.train, x.train, lambda = s, kf = 5,
-                                                               pen.factor = pen.factor, pen.type = pen.type),
+                                                                       pen.factor = pen.factor, pen.type = pen.type),
                           method = "L-BFGS-B", lower = 1e-4)$par
-  
     
     
-    # Then find the weights
+    
+    # Scale if applicable
+    if (scale) {
+      train.sd <- foreach(j = 1:p, .combine = c) %do% sd(x.train[, j])
+      train.mean <- colMeans(x.train)
+      x.train <- scale(x.train, TRUE, TRUE)
+      x.test <- scale(x.test, center = train.mean, scale = train.sd)
+    }
+    
+    # Find the penalty factor if applicable
     if (pen.factor){
       if ('lm' %in% pen.type) {
         penalty <- (1 / abs(lm(y.train ~ x.train)$coefficients[-1])) ^ 1
       } else if ('ridge' %in% pen.type) {
-        ridge <- glmnet(x.train, y.train, alpha = 0, nlambda = 50)
-        penalty <- (1 / abs(coef(ridge, s = 1e-10, exact = TRUE, x = x.train, y = y.train)[- 1])) ^ 1
+        ridge <- glmnet(x.train, y.train, alpha = 0, nlambda = 50, standardize = FALSE)
+        penalty <- (1 / abs(coef(ridge, s = 1e-10)[- 1])) ^ 1
       } else {
         stop('Error: input either lm or ridge for penalty factor calculation')
       }
-      
       penalty <- p * penalty / sum(penalty)
       x.train <- scale(x.train, FALSE, penalty)
       x.test <- scale(x.test, FALSE, penalty)
@@ -290,37 +341,47 @@ fun.lasso.predict <- function(y, x, pen.factor = TRUE, pen.type = 'ridge',
     }
     
     # Fit lasso/alasso
-    fit <- glmnet(x.train, y.train, nlambda = 50)
+    fit <- glmnet(x.train, y.train, nlambda = 50, standardize = FALSE)
     y.hat <- predict.glmnet(fit, x.test, s = lambda.optim, exact = TRUE, x = x.train, y = y.train)
     mspe[i] <- fun.mse(y.hat, y.test)
-    coef[i, ] <- coef(fit, s = lambda.optim, exact = TRUE, x = x.train, y = y.train)[- 1]
-    lambda[i] <- lambda.optim
+    coef[i, ] <- coef(fit, s = lambda.optim)[- 1]
+    y.hat.mat[i] <- y.hat
   }
-  return(list(mspe = mspe, lambda = lambda, coef = coef))
+  return(list(mspe = mspe, y.hat = y.hat.mat , coef = coef))
 }
 
-fun.ols.emp <- function(y, x, window = 10, horizon = 1){
+fun.ols.emp <- function(y, x, window = 10, horizon = 1,
+                        scale = TRUE){
   ## Splitting data into rolling windows
   index.roll <- createTimeSlices(y, initialWindow = 12 * window, horizon = horizon)
   n.test <- length(index.roll$test)
   p <- ncol(x)
   mspe <- rep(NA, n.test)
   coef <- matrix(NA, nrow = n.test, ncol = p + 1)
+  y.hat.mat <- rep(NA, n.test)
   
   ## Performing OLS
-  for (i in 1:n.test){
+  for (i in 1:n.test) {
     x.train <- x[index.roll$train[[i]], ]
-    y.train <- y[index.roll$train[[i]]]
     x.test <- cbind(1, matrix(x[index.roll$test[[i]], ], nrow = horizon))
+    y.train <- y[index.roll$train[[i]]]
     y.test <- y[index.roll$test[[i]]]
-    
+    # Scale if applicable
+    if (scale) {
+      train.sd <- foreach(j = 1:p, .combine = c) %do% sd(x.train[, j])
+      train.mean <- colMeans(x.train)
+      x.train <- scale(x.train, TRUE, TRUE)
+      x.test <- scale(x.test, center = train.mean, scale = train.sd)
+    }
+    # Fit OLS
     fit <- lm(y.train ~ x.train)
     index.na <- which(is.na(coef(fit)))
     y.hat <- x.test[, - index.na] %*% matrix(coef(fit))[- index.na, ]
     coef[i, ] <- matrix(fit$coefficients, nrow = 1)
     mspe[i] <- fun.mse(y.test, y.hat)
+    y.hat.mat[i] <- y.hat
   }
-  return(list(mspe = mspe, coef = coef))
+  return(list(mspe = mspe, y.hat = y.hat.mat, coef = coef))
 }
 
 fun.rw.emp <- function(y, window = 10, horizon = 1){
@@ -328,6 +389,7 @@ fun.rw.emp <- function(y, window = 10, horizon = 1){
   index.roll <- createTimeSlices(y, initialWindow = 12 * window, horizon = horizon)
   n.test <- length(index.roll$test)
   mspe <- rep(NA, n.test)
+  y.hat.mat <- rep(NA, n.test)
   
   ## Performing RWwD
   for (i in 1:n.test){
@@ -336,8 +398,9 @@ fun.rw.emp <- function(y, window = 10, horizon = 1){
     
     rw.mean <- mean(y.train)
     mspe[i] <- fun.mse(y.test, rw.mean)
+    y.hat.mat[i] <- rw.mean
   }
-  return(mspe)
+  return(list(mspe = mspe, y.hat = y.hat.mat))
 }
 
 

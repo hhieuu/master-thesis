@@ -7,7 +7,7 @@ source('dgp.R')
 ## For each setting, the study is replicated 100 times. Final MSPE is the average of all MSPE in all replications
 ## For Lasso and Alasso, lambda will be chosen by 10 fold cross validation in each replication at n = 200.
 ## Then the final lambda would be the median of all MSPE-optimized lambda.
-
+sim.scale = FALSE
 ######################################################################################################
 ######################## DATA GENERATING PROCESS 2 - DEGENERACY IN THE LIMIT #########################
 ######################################################################################################
@@ -34,12 +34,16 @@ toc()
 ## Finding optimized c_lambda by 10-folds cross validation for each replication of simulated data.
 
 tic()
-dgp2.alasso.lambda.optim <- fun.optim.lambda(dgp2.sim.optim.200, start.val = 0.5, pen.factor = TRUE, pen.type = 'ridge')
+dgp2.alasso.lambda.optim <- fun.optim.lambda(dgp2.sim.optim.200, start.val = 0.5, 
+                                             pen.factor = TRUE, pen.type = 'lm',
+                                             scale = sim.scale)
 dgp2.alasso.c_lambda <- median(dgp2.alasso.lambda.optim[, 1])
 toc()
 
 tic()
-dgp2.lasso.lambda.optim <- fun.optim.lambda(dgp2.sim.optim.200, start.val = 0.5, pen.factor = FALSE, pen.type = 'lm')
+dgp2.lasso.lambda.optim <- fun.optim.lambda(dgp2.sim.optim.200, start.val = 0.5, 
+                                            pen.factor = FALSE,
+                                            scale = sim.scale)
 dgp2.lasso.c_lambda <- median(dgp2.lasso.lambda.optim[, 1])
 toc()
 
@@ -62,11 +66,13 @@ dgp2.alasso.success.rate <- matrix(0, nrow = length(n.settings), ncol = 3)
 for (i in 1:length(n.settings)){
   dgp2.alasso.current.setting <- paste('dgp2.sim.', n.settings[i], sep = '')
   dgp2.alasso.current.fit <- fun.fit.lasso.all(get(dgp2.alasso.current.setting),
-                                               c_lambda = dgp2.alasso.c_lambda, pen.factor = TRUE)
+                                               c_lambda = dgp2.alasso.c_lambda, 
+                                               pen.factor = TRUE,
+                                               scale = sim.scale)
   dgp2.alasso.mspe[i] <- mean(dgp2.alasso.current.fit$mspe)
   dgp2.alasso.beta[[i]] <- dgp2.alasso.current.fit$beta
   dgp2.alasso.success.rate[i, ] <- fun.perf.lasso(beta.true = c(0, - 0.1, 1 / sqrt(n.settings[i]), 0, 0.4, 0.2, - 0.2, 0, 0),
-                                beta.est = dgp2.alasso.current.fit$beta, n.sim = 1000)
+                                                  beta.est = dgp2.alasso.current.fit$beta, n.sim = 1000)
 }
 toc()
 
@@ -78,11 +84,13 @@ dgp2.lasso.success.rate <- matrix(0, nrow = length(n.settings), ncol = 3)
 for (i in 1:length(n.settings)){
   dgp2.lasso.current.setting <- paste('dgp2.sim.', n.settings[i], sep = '')
   dgp2.lasso.current.fit <- fun.fit.lasso.all(get(dgp2.lasso.current.setting),
-                                              c_lambda = dgp2.lasso.c_lambda, pen.factor = FALSE)
+                                              c_lambda = dgp2.lasso.c_lambda, 
+                                              pen.factor = FALSE, 
+                                              scale = sim.scale)
   dgp2.lasso.mspe[i] <- mean(dgp2.lasso.current.fit$mspe)
   dgp2.lasso.beta[[i]] <- dgp2.lasso.current.fit$beta
   dgp2.lasso.success.rate[i, ] <- fun.perf.lasso(beta.true = c(0, - 0.1, 1 / sqrt(n.settings[i]), 0, 0.4, 0.2, - 0.2, 0, 0),
-                                      beta.est = dgp2.lasso.current.fit$beta, n.sim = 1000)
+                                                 beta.est = dgp2.lasso.current.fit$beta, n.sim = 1000)
 }
 toc()
 
@@ -94,7 +102,7 @@ dgp2.ols.mspe <- rep(0, length(n.settings))
 dgp2.ols.beta <- list()
 for (i in 1:length(n.settings)){
   dgp2.ols.current.setting <- paste('dgp2.sim.', n.settings[i], sep = '')
-  dgp2.ols.current.fit <- fun.fit.ols.all(get(dgp2.ols.current.setting))
+  dgp2.ols.current.fit <- fun.fit.ols.all(get(dgp2.ols.current.setting), scale = sim.scale)
   dgp2.ols.mspe[i] <- dgp2.ols.current.fit$mspe
   dgp2.ols.beta[[i]] <- dgp2.ols.current.fit$beta
 }
@@ -104,7 +112,8 @@ dgp2.oracle.beta <- list()
 for (i in 1:length(n.settings)){
   dgp2.oracle.current.setting <- paste('dgp2.sim.', n.settings[i], sep = '')
   dgp2.oracle.current.fit <- fun.fit.oracle.all(get(dgp2.oracle.current.setting),
-                                           beta.true = c(0, - 0.1, 1 / sqrt(n.settings[i]), 0, 0.4, 0.2, - 0.2, 0, 0))
+                                                beta.true = c(0, - 0.1, 1 / sqrt(n.settings[i]), 0, 0.4, 0.2, - 0.2, 0, 0),
+                                                scale = sim.scale)
   dgp2.oracle.mspe[i] <- dgp2.oracle.current.fit$mspe
   dgp2.oracle.beta[[i]] <- dgp2.oracle.current.fit$beta
 }
@@ -121,7 +130,7 @@ for (i in 1:length(n.settings)){
 
 # Print results
 dgp2.mspe.result.df <- t(data.frame(alasso.mspe = dgp2.alasso.mspe, lasso.mspe = dgp2.lasso.mspe, 
-                               ols.mspe = dgp2.ols.mspe, oracle.mspe = dgp2.oracle.mspe))
+                                    ols.mspe = dgp2.ols.mspe, oracle.mspe = dgp2.oracle.mspe))
 colnames(dgp2.mspe.result.df) <- paste(n.settings)
 
 
@@ -149,12 +158,16 @@ toc()
 ## Finding optimized c_lambda by 10-folds cross validation for each replication of simulated data.
 
 tic()
-dgp3.alasso.lambda.optim <- fun.optim.lambda(dgp3.sim.optim.200, start.val = 0.5, pen.factor = TRUE)
+dgp3.alasso.lambda.optim <- fun.optim.lambda(dgp3.sim.optim.200, start.val = 0.5, 
+                                             pen.factor = TRUE, pen.type = 'lm',
+                                             scale = sim.scale)
 dgp3.alasso.c_lambda <- median(dgp3.alasso.lambda.optim[, 1])
 toc()
 
 tic()
-dgp3.lasso.lambda.optim <- fun.optim.lambda(dgp3.sim.optim.200, start.val = 0.5, pen.factor = FALSE)
+dgp3.lasso.lambda.optim <- fun.optim.lambda(dgp3.sim.optim.200, start.val = 0.5, 
+                                            pen.factor = FALSE,
+                                            scale = sim.scale)
 dgp3.lasso.c_lambda <- median(dgp3.lasso.lambda.optim[, 1])
 toc()
 
@@ -168,7 +181,9 @@ dgp3.alasso.success.rate <- matrix(0, nrow = length(n.settings), ncol = 3)
 for (i in 1:length(n.settings)){
   dgp3.alasso.current.setting <- paste('dgp3.sim.', n.settings[i], sep = '')
   dgp3.alasso.current.fit <- fun.fit.lasso.all(get(dgp3.alasso.current.setting),
-                                               c_lambda = dgp3.alasso.c_lambda, pen.factor = TRUE)
+                                               c_lambda = dgp3.alasso.c_lambda, 
+                                               pen.factor = TRUE,
+                                               scale = sim.scale)
   dgp3.alasso.mspe[i] <- mean(dgp3.alasso.current.fit$mspe)
   dgp3.alasso.beta[[i]] <- dgp3.alasso.current.fit$beta
   dgp3.alasso.success.rate[i, ] <- fun.perf.lasso(beta.true = c(0, - 0.1, 1 / sqrt(n.settings[i]), 0, 0.4, 0.2, - 0.2, 0, 0),
@@ -184,7 +199,9 @@ dgp3.lasso.success.rate <- matrix(0, nrow = length(n.settings), ncol = 3)
 for (i in 1:length(n.settings)){
   dgp3.lasso.current.setting <- paste('dgp3.sim.', n.settings[i], sep = '')
   dgp3.lasso.current.fit <- fun.fit.lasso.all(get(dgp3.lasso.current.setting),
-                                              c_lambda = dgp3.lasso.c_lambda, pen.factor = FALSE)
+                                              c_lambda = dgp3.lasso.c_lambda, 
+                                              pen.factor = FALSE,
+                                              scale = sim.scale)
   dgp3.lasso.mspe[i] <- mean(dgp3.lasso.current.fit$mspe)
   dgp3.lasso.beta[[i]] <- dgp3.lasso.current.fit$beta
   dgp3.lasso.success.rate[i, ] <- fun.perf.lasso(beta.true = c(0, - 0.1, 1 / sqrt(n.settings[i]), 0, 0.4, 0.2, - 0.2, 0, 0),
@@ -200,7 +217,8 @@ dgp3.ols.mspe <- rep(0, length(n.settings))
 dgp3.ols.beta <- list()
 for (i in 1:length(n.settings)){
   dgp3.ols.current.setting <- paste('dgp3.sim.', n.settings[i], sep = '')
-  dgp3.ols.current.fit <- fun.fit.ols.all(get(dgp3.ols.current.setting))
+  dgp3.ols.current.fit <- fun.fit.ols.all(get(dgp3.ols.current.setting), 
+                                          scale = sim.scale)
   dgp3.ols.mspe[i] <- dgp3.ols.current.fit$mspe
   dgp3.ols.beta[[i]] <- dgp3.ols.current.fit$beta
 }
@@ -210,7 +228,8 @@ dgp3.oracle.beta <- list()
 for (i in 1:length(n.settings)){
   dgp3.oracle.current.setting <- paste('dgp3.sim.', n.settings[i], sep = '')
   dgp3.oracle.current.fit <- fun.fit.oracle.all(get(dgp3.oracle.current.setting),
-                                                beta.true = c(0, - 0.1, 1 / sqrt(n.settings[i]), 0, 0.4, 0.2, - 0.2, 0, 0))
+                                                beta.true = c(0, - 0.1, 1 / sqrt(n.settings[i]), 0, 0.4, 0.2, - 0.2, 0, 0), 
+                                                scale = sim.scale)
   dgp3.oracle.mspe[i] <- dgp3.oracle.current.fit$mspe
   dgp3.oracle.beta[[i]] <- dgp3.oracle.current.fit$beta
 }
@@ -254,17 +273,24 @@ n.settings <- c(40, 80, 160, 250, 500, 1000)
 toc()
 
 
+# Scaling variables
+
+
 
 #### Alasso performance assessment ----
 ## Finding optimized c_lambda by 10-folds cross validation for each replication of simulated data.
 
 tic()
-dgp4.alasso.lambda.optim <- fun.optim.lambda(dgp4.sim.optim.200, start.val = 0.5, pen.factor = TRUE)
+dgp4.alasso.lambda.optim <- fun.optim.lambda(dgp4.sim.optim.200, start.val = 0.5, 
+                                             pen.factor = TRUE, pen.type = 'lm',
+                                             scale = sim.scale)
 dgp4.alasso.c_lambda <- median(dgp4.alasso.lambda.optim[, 1])
 toc()
 
 tic()
-dgp4.lasso.lambda.optim <- fun.optim.lambda(dgp4.sim.optim.200, start.val = 0.5, pen.factor = FALSE)
+dgp4.lasso.lambda.optim <- fun.optim.lambda(dgp4.sim.optim.200, start.val = 0.5, 
+                                            pen.factor = FALSE,
+                                            scale = sim.scale)
 dgp4.lasso.c_lambda <- median(dgp4.lasso.lambda.optim[, 1])
 toc()
 
@@ -278,7 +304,9 @@ dgp4.alasso.success.rate <- matrix(0, nrow = length(n.settings), ncol = 3)
 for (i in 1:length(n.settings)){
   dgp4.alasso.current.setting <- paste('dgp4.sim.', n.settings[i], sep = '')
   dgp4.alasso.current.fit <- fun.fit.lasso.all(get(dgp4.alasso.current.setting),
-                                               c_lambda = dgp4.alasso.c_lambda, pen.factor = TRUE)
+                                               c_lambda = dgp4.alasso.c_lambda, 
+                                               pen.factor = TRUE,
+                                               scale = sim.scale)
   dgp4.alasso.mspe[i] <- mean(dgp4.alasso.current.fit$mspe)
   dgp4.alasso.beta[[i]] <- dgp4.alasso.current.fit$beta
   dgp4.alasso.success.rate[i, ] <- fun.perf.lasso(beta.true = c(0.4, 0, 1 / sqrt(n.settings[i]), 0, 0.3, - 0.3, 0, 0),
@@ -294,7 +322,9 @@ dgp4.lasso.success.rate <- matrix(0, nrow = length(n.settings), ncol = 3)
 for (i in 1:length(n.settings)){
   dgp4.lasso.current.setting <- paste('dgp4.sim.', n.settings[i], sep = '')
   dgp4.lasso.current.fit <- fun.fit.lasso.all(get(dgp4.lasso.current.setting),
-                                              c_lambda = dgp4.lasso.c_lambda, pen.factor = FALSE)
+                                              c_lambda = dgp4.lasso.c_lambda, 
+                                              pen.factor = FALSE, 
+                                              scale = sim.scale)
   dgp4.lasso.mspe[i] <- mean(dgp4.lasso.current.fit$mspe)
   dgp4.lasso.beta[[i]] <- dgp4.lasso.current.fit$beta
   dgp4.lasso.success.rate[i, ] <- fun.perf.lasso(beta.true = c(0.4, 0, 1 / sqrt(n.settings[i]), 0, 0.3, - 0.3, 0, 0),
@@ -310,7 +340,8 @@ dgp4.ols.mspe <- rep(0, length(n.settings))
 dgp4.ols.beta <- list()
 for (i in 1:length(n.settings)){
   dgp4.ols.current.setting <- paste('dgp4.sim.', n.settings[i], sep = '')
-  dgp4.ols.current.fit <- fun.fit.ols.all(get(dgp4.ols.current.setting))
+  dgp4.ols.current.fit <- fun.fit.ols.all(get(dgp4.ols.current.setting), 
+                                          scale = sim.scale)
   dgp4.ols.mspe[i] <- dgp4.ols.current.fit$mspe
   dgp4.ols.beta[[i]] <- dgp4.ols.current.fit$beta
 }
@@ -320,7 +351,8 @@ dgp4.oracle.beta <- list()
 for (i in 1:length(n.settings)){
   dgp4.oracle.current.setting <- paste('dgp4.sim.', n.settings[i], sep = '')
   dgp4.oracle.current.fit <- fun.fit.oracle.all(get(dgp4.oracle.current.setting),
-                                                beta.true = c(0.4, 0, 1 / sqrt(n.settings[i]), 0, 0.3, - 0.3, 0, 0))
+                                                beta.true = c(0.4, 0, 1 / sqrt(n.settings[i]), 0, 0.3, - 0.3, 0, 0), 
+                                                scale = sim.scale)
   dgp4.oracle.mspe[i] <- dgp4.oracle.current.fit$mspe
   dgp4.oracle.beta[[i]] <- dgp4.oracle.current.fit$beta
 }
