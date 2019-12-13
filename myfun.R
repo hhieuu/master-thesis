@@ -39,7 +39,7 @@ fun.horizon.transform <- function(y, horizon = 1/12){
 #### Lasso/alasso functions: ----
 
 fun.cv.lasso <- function(y, x, lambda, kf, 
-                         pen.factor = TRUE, pen.type,
+                         pen.factor = TRUE, pen.type = 'lm',
                          scale = TRUE){ # calculate k-fold CV mspe
   n.obs <- length(y)
   p <- ncol(x)
@@ -113,7 +113,7 @@ fun.fit.lasso.all <- function(data, c_lambda,
                               scale = TRUE) {
   n.rep <- length(data) / 2
   setting <- length(data[[1]])
-  p <- nrow(data[[2]])
+  p <- ncol(data[[2]])
   test.portion <- .1
   train.portion <- 1 - test.portion
   y.list <- data[seq(from = 1, to = length(data), by = 2)]
@@ -163,10 +163,10 @@ fun.fit.lasso.all <- function(data, c_lambda,
     }
     
     fit <- glmnet(x.train, y.train, standardize = FALSE, nlambda = 50)
-    y.hat <- predict.glmnet(fit, x.test, s = lambda, # / (setting * train.portion),
+    y.hat <- predict.glmnet(fit, x.test, s = lambda / (setting * train.portion),
                             x = x.train, y = y.train, exact = TRUE)
     mspe[i] <- fun.mse(y.hat, y.test)
-    beta[i, ] <- coef(fit, x.test, s = lambda, # / (setting * train.portion), 
+    beta[i, ] <- coef(fit, x.test, s = lambda / (setting * train.portion), 
                       x = x.train, y = y.train, exact = TRUE)[- 1]
   }
   return(list(mspe = mspe, beta = beta))
@@ -230,8 +230,8 @@ fun.fit.ols.all <- function(data, scale = TRUE) {
   return(list(mspe = mean(mspe), beta = beta))
 }
 
-fun.fit.oracle.all <- function(data, beta.true) {
-  
+fun.fit.oracle.all <- function(data, beta.true,
+                               scale = TRUE) {
   n.rep <- length(data) / 2
   setting <- length(data[[1]])
   y.list <- data[seq(from = 1, to = length(data), by = 2)]
@@ -317,7 +317,7 @@ fun.lasso.predict <- function(y, x, pen.factor = TRUE, pen.type = 'ridge',
     
     # Scale if applicable
     if (scale) {
-      train.sd <- foreach(i = 1:p, .combine = c) %do% sd(x.train[, i])
+      train.sd <- foreach(j = 1:p, .combine = c) %do% sd(x.train[, j])
       train.mean <- colMeans(x.train)
       x.train <- scale(x.train, TRUE, TRUE)
       x.test <- scale(x.test, center = train.mean, scale = train.sd)
@@ -368,7 +368,7 @@ fun.ols.emp <- function(y, x, window = 10, horizon = 1,
     y.test <- y[index.roll$test[[i]]]
     # Scale if applicable
     if (scale) {
-      train.sd <- foreach(i = 1:p, .combine = c) %do% sd(x.train[, i])
+      train.sd <- foreach(j = 1:p, .combine = c) %do% sd(x.train[, j])
       train.mean <- colMeans(x.train)
       x.train <- scale(x.train, TRUE, TRUE)
       x.test <- scale(x.test, center = train.mean, scale = train.sd)

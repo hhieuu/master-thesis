@@ -9,6 +9,7 @@ install.packages('Matrix')
 install.packages('corrplot')
 install.packages('snow')
 install.packages('foreach')
+install.packages('tictoc')
 
 # ## Call packages
 library('readxl')
