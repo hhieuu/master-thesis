@@ -2,4 +2,12 @@
 .Rhistory
 .RData
 .Ruserdata
+latex/thesis_paper.aux
+latex/thesis_paper.bbl
+latex/thesis_paper.blg
+latex/thesis_paper.dvi
+latex/thesis_paper.log
+latex/thesis_paper.ps
+latex/thesis_paper.toc
+latex/thesis_paper.pdf
 
