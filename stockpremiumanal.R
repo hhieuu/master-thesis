@@ -121,8 +121,8 @@ y.1 <- fun.horizon.transform(y.1_12, 1)
 y.2 <- fun.horizon.transform(y.1_12, 2)
 y.3 <- fun.horizon.transform(y.1_12, 3)
 
-x <- scale(var.all.lag, TRUE, TRUE)
-x.1_12 <- scale(var.all.lag, TRUE, TRUE)
+x <- var.all.lag
+x.1_12 <- var.all.lag
 # x.1_12 <- scale(var.all.lag, TRUE, TRUE)[480:n, ] # 50 latest years
 # x.1_12 <- scale(var.all.lag, TRUE, TRUE)[1:160, ]
 x.1_4 <- x.1_12[1:length(y.1_4), ]
@@ -160,9 +160,13 @@ print(alasso.lambda.min)
 # Therefore, optimization algorithms is very volatile and dependent on given initial value.
 # After the examination above, we will set initial value for optimization to a value close to min (0.01).
 # Reader can try and change the initial value below to see the volatility
+emp.scale <- TRUE
 
 alasso.optim <- optim(par = alasso.lambda.min, 
-                      function(a) fun.cv.lasso(y.1_12, x.1_12, kf = 5, lambda = a, pen.factor = TRUE, pen.type = 'ridge'),
+                      function(a) fun.cv.lasso(y.1_12, x.1_12, 
+                                               kf = 5, lambda = a, 
+                                               pen.factor = TRUE, pen.type = 'ridge',
+                                               scale = emp.scale),
                       method = "L-BFGS-B", lower = 0.0001)
 toc()
 print(alasso.optim$par)
@@ -179,25 +183,29 @@ parallel::setDefaultCluster(cl = cl)
 tic()
 par.alasso.result.10 <- parLapply(cl, horizon.setting,
                                function(a) fun.lasso.predict(get(paste('y.', a, sep = '')), get(paste('x.', a, sep = '')),
-                                                             pen.factor = TRUE, pen.type = 'ridge'))
+                                                             pen.factor = TRUE, pen.type = 'ridge', 
+                                                             scale = emp.scale))
 toc()
 
 tic()
 par.lasso.result.10 <- parLapply(cl, horizon.setting,
                                function(a) fun.lasso.predict(get(paste('y.', a, sep = '')), get(paste('x.', a, sep = '')),
-                                                             pen.factor = FALSE))
+                                                             pen.factor = FALSE, 
+                                                             scale = emp.scale))
 toc()
 
 tic()
 par.alasso.result.15 <- parLapply(cl, horizon.setting,
                                   function(a) fun.lasso.predict(get(paste('y.', a, sep = '')), get(paste('x.', a, sep = '')),
-                                                                pen.factor = TRUE, pen.type = 'ridge', window = 15))
+                                                                pen.factor = TRUE, pen.type = 'ridge', window = 15,
+                                                                scale = emp.scale))
 toc()
 
 tic()
 par.lasso.result.15 <- parLapply(cl, horizon.setting,
                                  function(a) fun.lasso.predict(get(paste('y.', a, sep = '')), get(paste('x.', a, sep = '')),
-                                                               pen.factor = FALSE, window = 15))
+                                                               pen.factor = FALSE, window = 15,
+                                                               scale = emp.scale))
 toc()
 stopCluster(cl)
 
@@ -214,10 +222,12 @@ alasso.sel.rate.10 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% 
 
 par.ols.result.10 <- lapply(horizon.setting, 
                             function(a) fun.ols.emp(get(paste('y.', a, sep = '')), get(paste('x.', a, sep = '')),
-                                                    window = 10, horizon = 1))
+                                                    window = 10, horizon = 1,
+                                                    scale = emp.scale))
 par.ols.result.15 <- lapply(horizon.setting, 
                             function(a) fun.ols.emp(get(paste('y.', a, sep = '')), get(paste('x.', a, sep = '')),
-                                                    window = 15, horizon = 1))
+                                                    window = 15, horizon = 1,
+                                                    scale = emp.scale))
 ols.mspe.10 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.ols.result.10[[i]]$mspe)
 ols.mspe.15 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.ols.result.15[[i]]$mspe)
 
