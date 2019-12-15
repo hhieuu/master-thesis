@@ -125,8 +125,9 @@ fun.fit.lasso.all <- function(data, c_lambda,
   
   # Lambda
   if (pen.factor) {
-    lambda <- c_lambda * (setting * train.portion) ^ (1 / 2) / log(log(setting * train.portion))
+    # lambda <- c_lambda * (setting * train.portion) ^ (1 / 2) / log(log(setting * train.portion))
     # lambda <- c_lambda * (setting * train.portion) ^ (1 / 2) / log(setting * train.portion)
+    lambda <- c_lambda * (setting * train.portion) ^ (1 / 2) / log(setting * train.portion) ^ 2
   } else {
     lambda <- c_lambda * (setting * train.portion) ^ (1 / 2)
   }
@@ -163,38 +164,39 @@ fun.fit.lasso.all <- function(data, c_lambda,
     }
     
     fit <- glmnet(x.train, y.train, standardize = FALSE, nlambda = 50)
-    y.hat <- predict.glmnet(fit, x.test, s = lambda / (setting * train.portion),
+    y.hat <- predict.glmnet(fit, x.test, s = lambda, # / (setting * train.portion),
                             x = x.train, y = y.train, exact = TRUE)
     mspe[i] <- fun.mse(y.hat, y.test)
-    beta[i, ] <- coef(fit, x.test, s = lambda / (setting * train.portion), 
+    beta[i, ] <- coef(fit, x.test, s = lambda, # / (setting * train.portion), 
                       x = x.train, y = y.train, exact = TRUE)[- 1]
   }
   return(list(mspe = mspe, beta = beta))
 }
 
 fun.perf.lasso <- function(beta.true, beta.est, n.sim){
-  # Getting index of true zero and nonzero variables
   index.zero.true <- which(beta.true == 0)
   index.nonzero.true <- which(beta.true != 0)
   
-  index.zero.est <- lapply(1:n.sim, function(i) which(beta.est[i, ] == 0))
-  index.nonzero.est <- lapply(1:n.sim, function(i) which(beta.est[i, ] != 0))
+  sr <- rep(NA, n.sim)
+  sr1 <- rep(NA, n.sim)
+  sr2 <- rep(NA, n.sim)
   
-  # SR1: Percentage of corrent selection in the active set
-  sr1 <- sapply(1:n.sim, function(i) sum(index.nonzero.est[[i]] %in% 
-                                           index.nonzero.true))
-  
-  # SR2: percentage of correct elimination of the zero coefficients
-  sr2 <- sapply(1:n.sim, function(i) sum(index.zero.est[[i]] %in%
-                                           index.zero.true))
-  
-  # SR: overall success rate of classification into zero coefficients AND non-zero coefficients
-  sr <- sapply(1:n.sim, function(i) sum(index.zero.est[[i]] %in% index.zero.true,
-                                        index.nonzero.est[[i]] %in% index.nonzero.true))
-  return(matrix(c(mean(sr) / length(beta.true),
-                  mean(sr1) / length(index.nonzero.true),
-                  mean(sr2)) / length(index.zero.true),
-                nrow = 1, ncol = 3))
+  for (i in 1:n.sim){
+    beta.current <- beta.est[i, ]
+    index.zero.est <- which(beta.current == 0)
+    index.nonzero.est <- which(beta.current != 0)
+    # SR: overall success rate of classification into zero coefficients AND non-zero coefficients
+    sr[i] <- sum(index.nonzero.est %in% index.nonzero.true, index.zero.est %in% index.zero.true)
+    # SR1: Percentage of corrent selection in the active set
+    sr1[i] <- sum(index.nonzero.est %in% index.nonzero.true)
+    # SR2: percentage of correct elimination of the zero coefficients
+    sr2[i] <- sum(index.zero.est %in% index.zero.true)
+  }
+  result <- matrix(c(mean(sr) / length(beta.true),
+                     mean(sr1) / length(index.nonzero.true),
+                     mean(sr2) / length(index.zero.true)),
+                   nrow = 1, ncol = 3)
+  return(result)
 }
 
 #### OLS functions ----

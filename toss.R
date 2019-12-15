@@ -353,3 +353,33 @@ fun.lasso.predict.par <- function(cl, y, x, pen.factor = TRUE, pen.type = 'ridge
   lambda <- foreach(i = 1:n.test, .combine = c) %do% result[[i]]$lambda
   return(list(mspe = mspe, coef = coef, lambda = lambda))
 }
+
+
+fun.perf.lasso <- function(beta.true, beta.est, n.sim){
+  # Getting index of true zero and nonzero variables
+  index.zero.true <- which(beta.true == 0)
+  index.nonzero.true <- which(beta.true != 0)
+  
+  sr <- rep(NA, n.sim)
+  sr1 <- rep(NA, n.sim)
+  sr2 <- rep(NA, n.sim)
+  
+  for (i in 1:n.sim) {
+    beta.est.current <- beta.est[i, ]
+    index.zero.current <- which(beta.est.current == 0)
+    index.nonzero.current <- which(beta.est.current != 0)
+    # SR: overall success rate of classification into zero coefficients AND non-zero coefficients
+    sr[i] <- sum(index.zero.current %in% index.zero.true,
+                 index.nonzero.current %in% index.nonzero.true)
+    # SR1: Percentage of corrent selection in the active set
+    sr1[i] <- sum(index.nonzero.current %in% index.nonzero.true)
+    # SR2: percentage of correct elimination of the zero coefficients
+    sr2[i] <- sum(index.zero.current %in% index.zero.true)
+    
+  }
+  
+  return(matrix(c(mean(sr) / length(beta.true),
+                  mean(sr1) / length(index.nonzero.true),
+                  mean(sr2)) / length(index.zero.true),
+                nrow = 1, ncol = 3))
+}

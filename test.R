@@ -58,8 +58,10 @@ plot(ts(x.all.1000[[1]][, 7]))
 lines(ts(x.all.1000[[1]][, 8]), col = 'red')
 plot(ts(x.all.1000[[1]][, 8]))
 
-plot(function(n) n ^ (1 / 2) / log(log(n)), from = 1, to = 1e5)
-plot(function(n) 1 / log(log(n)) + log(log(n)) / n ^ (1 / 2), from = 1, to = 1e5, col = 'red', add = T)
+plot(function(n) (n - 3) / n, from = 1, to = 5e2)
+plot(function(n) 1 - 1 / (n ^ 3 + 1), from = 1, to = 5e2, col = 'red', add = T)
+plot(function(n) n / (n + 1), from = 1, to = 5e2, col = 'blue', add = T)
+
 plot(function(n) 1 / (n ^ (1 / 6) * log(log(n))) + log(log(n)) / n ^ (1 / 3), from = 1, to = 1e5, col = 'blue', add = T)
 plot(function(n) n^(1/2), from = 1, to = 5e3, col = 'green', add = T)
 plot(function(n) n / log(n), from = 1, to = 5e3, col = 'purple', add = T)
