@@ -182,7 +182,7 @@ for (i in 1:length(n.settings)){
   dgp3.alasso.current.setting <- paste('dgp3.sim.', n.settings[i], sep = '')
   dgp3.alasso.current.fit <- fun.fit.lasso.all(get(dgp3.alasso.current.setting),
                                                c_lambda = dgp3.alasso.c_lambda, 
-                                               pen.factor = TRUE,
+                                               pen.factor = TRUE, pen.type = 'lm',
                                                scale = sim.scale)
   dgp3.alasso.mspe[i] <- mean(dgp3.alasso.current.fit$mspe)
   dgp3.alasso.beta[[i]] <- dgp3.alasso.current.fit$beta

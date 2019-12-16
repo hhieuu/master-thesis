@@ -98,7 +98,7 @@ fun.optim.lambda <- function(sample, start.val,
   for (i in 1:n.sim){
     optim.tmp <- optim(par = start.val, 
                        function(a) fun.cv.lasso(y.all[[i]], x.all[[i]], kf = 10, lambda = a, 
-                                                pen.factor = pen.factor, pen.type = 'lm',
+                                                pen.factor = pen.factor, pen.type = pen.type,
                                                 scale = scale),
                        method = "L-BFGS-B", lower = 0.001)
     optim.lambda[i, 1] <- optim.tmp$par

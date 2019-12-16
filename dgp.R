@@ -35,7 +35,7 @@ fun.dgp2 <- function(n.burn = 500, n.obs = 500){
   rho.coll <- matrix(c(0.6, 0.6))
   x.coll <- matrix(NA, ncol = n.coll, nrow = n.tot)
   x.coll[1, ] <- rnorm(n.coll) # init values
-  x.cov.err <- n.obs / (n.obs + 2) * (1 - rho.coll[1] * rho.coll[2]) / sqrt((1 - rho.coll[1] ^ 2) * (1 - rho.coll[2] ^ 2))
+  x.cov.err <- n.obs / (n.obs + 1) * (1 - rho.coll[1] * rho.coll[2]) / sqrt((1 - rho.coll[1] ^ 2) * (1 - rho.coll[2] ^ 2))
   x.coll.err <- mvrnorm(n.coll*n.tot, mu = c(0, 0), Sigma = matrix(c(1, x.cov.err, x.cov.err, 1), 2, 2)) # error matrix. Error term is highly correlated (0.95)
   for (i in 2:n.tot){
     x.coll[i, ] <- rho.coll*x.coll[i - 1, ] + x.coll.err[i, ] # simulating AR(1) variables
@@ -97,7 +97,7 @@ fun.dgp3 <- function(n.burn = 500, n.obs = 500){
   rho.coll <- matrix(c(0.6, 0.6))
   x.coll <- matrix(NA, ncol = n.coll, nrow = n.tot)
   x.coll[1, ] <- rnorm(n.coll) # init values
-  x.cov.err <- 1 * (1 - rho.coll[1] * rho.coll[2]) / sqrt((1 - rho.coll[1] ^ 2) * (1 - rho.coll[2] ^ 2))
+  x.cov.err <- 0.999 * (1 - rho.coll[1] * rho.coll[2]) / sqrt((1 - rho.coll[1] ^ 2) * (1 - rho.coll[2] ^ 2))
   x.coll.err <- mvrnorm(n.coll*n.tot, mu = c(0, 0), Sigma = matrix(c(1, x.cov.err, x.cov.err, 1), 2, 2)) # error matrix. Error term is highly correlated (0.95)
   for (i in 2:n.tot){
     x.coll[i, ] <- rho.coll*x.coll[i - 1, ] + x.coll.err[i, ] # simulating AR(1) variables
