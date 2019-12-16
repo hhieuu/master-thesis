@@ -50,4 +50,25 @@ More to do:
 Next up:
 - Adaptive LASSO
 - 2-step method
->>>>>>> stationarity_near-singular-regression
+
+**** 16.12.2019
+Note:
+- Slower-convergence lambda sequences yield better results for DGP2 and DGP3 due to near-singular design.
+However, conditions in Lee (2018) still need to be fulfilled.
+So n ^ (1 / 2) / log(n) ^ 2 seems to be the best option here for MSPE (still cant beat much of the OLS).
+At n ^ (1 / 2) / log(n) ^ 3, alasso beats OLS in term of MSPE, but selection takes a hit.
+Scales also have effect on performance as well. Scaling gives better performance, but it means lasso is not
+the plain vanilla type anymore, but standardized lasso. In case of alasso, scaling alters the individual penalty
+factor. So in most cases, I do not scale (standardize) variables.
+
+To do:
+- Run everything again on 2 mentioned, slower, lambda sequences. Compare results.
+- Maybe: Add slasso to the mix of feasible estimators.
+- Unscale and run again the empirical application.
+
+To be in the thesis:
+- Draw TRUE RETURNS vs PREDICTED RETURNS, for several horizon
+- Draw ESTIMATED COEFFICIENTS for each variables in one selected case to conclude most selected variables
+and the selected range of values.
+
+
