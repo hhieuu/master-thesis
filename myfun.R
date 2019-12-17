@@ -127,7 +127,8 @@ fun.fit.lasso.all <- function(data, c_lambda,
   if (pen.factor) {
     # lambda <- c_lambda * (setting * train.portion) ^ (1 / 2) / log(log(setting * train.portion))
     # lambda <- c_lambda * (setting * train.portion) ^ (1 / 2) / log(setting * train.portion)
-    lambda <- c_lambda * (setting * train.portion) ^ (1 / 2) / log(setting * train.portion) ^ 2
+    # lambda <- c_lambda * (setting * train.portion) ^ (1 / 2) / log(setting * train.portion) ^ 2
+    lambda <- c_lambda * (setting * train.portion) ^ (1 / 2) / log(setting * train.portion) ^ 3
   } else {
     lambda <- c_lambda * (setting * train.portion) ^ (1 / 2)
   }

@@ -158,7 +158,7 @@ This theorem reveals many interesting insights. With a proper choice of $ \{\lam
 \end{equation}
 where $ \hat{\tau}_j = \vert\hat{\beta}_j\vert^{-\gamma} $ is the individual weight for the corresponding regressor $ j $, with $ \hat{\beta}_j $ denoting estimate from another regression method. Popular choices for $ \hat{\beta}_j $ include estimates from OLS, ridge regression, or even lasso. $ \gamma $ is a hyperparameter that is, in practice, chosen such that $ \gamma \geq 1 $ to prevent non-convex optimization problem \citep{lee2018lasso}. One can also use cross-validation to optimize for $ \gamma $. The solution for this objective function is a vector of alasso estimators $ \hat{\bm{\theta}}^{al} $.
 
-The choice of the vector of weights $ \hat{\bm{\tau}} $ is an important aspect of alasso implementation. Usually, a data driven method such as estimates from another regression scheme is used to obtain $ \hat{\bm{\beta}}$. In our case, we will consider using estimates from OLS and ridge regression due to some favorable properties. First is the OLS, $ \hat{\tau}_j = \vert\hat{\beta}_j^{ols}\vert^{-\gamma} $. In the case of mixed roots, there is an asymptotic bias in the limiting distribution of estimates due to serial dependence in the innovations since we allow for correlation between regression error and the innovation of non-stationary regressors. Still, OLS estimates still converge at the same rate as in the case of stationary regression. For zero true coefficient, $ \hat{\tau}_j $ is also small, putting a heavier penalty on its estimate. On the other hand, the weight for non-zero estimate will converge to a small value, putting less weights on its estimate. In singular settings, however, calculating weights using OLS fails due to the elimination or inflation of estimates for perfectly correlated variables. Weight using estimate from ridge regression is a good replacement. For lambda value that is near and approaching zero, ridge estimate is found to be a good approximation of OLS estimate \citep{knight2000asymptotics}. 
+The choice of the vector of weights $ \hat{\bm{\tau}} $ is an important aspect of alasso implementation. Usually, a data driven method such as estimates from another regression scheme is used to obtain $ \hat{\bm{\beta}}$. In our case, we will consider using estimates from OLS and ridge regression due to some favorable properties. First is the OLS, $ \hat{\tau}_j = \vert\hat{\beta}_j^{ols}\vert^{-\gamma} $. In the case of mixed roots, there is an asymptotic bias in the limiting distribution of estimates due to serial dependence in the innovations since we allow for correlation between regression error and the innovation of non-stationary regressors. Still, OLS estimates still converge at the same rate as in the case of stationary regression. For zero true coefficient, $ \hat{\tau}_j $ is also small, putting a heavier penalty on its estimate. On the other hand, the weight for non-zero estimate will converge to a small value, putting less weights on its estimate. In singular settings, however, calculating weights using OLS fails due to the elimination or false inflation of estimates for highly correlated variables. Weight using estimate from ridge regression is a good replacement. Setting lambda value to be near zero, ridge estimate is argued to be a reasonable approximation for OLS estimate \citep{knight2000asymptotics}. 
 
 
 
@@ -167,7 +167,8 @@ Present Oracle properties and condition for it
 Why is it OLS? (lee) 
 Oracle properties in the case of mixed root
 Is the rate for oracle properties appropriate for near-singular design?
-No test developed. Lee (2016) is not valid because of collinearity ---
+No test developed. Lee (2016) is not valid because of collinearity 
+---
 
 
 
