@@ -27,6 +27,7 @@ library('tictoc')
 library('foreach')
 
 ### Functions:
+setwd("D:/Study Materials/Master in Quantitative Economics - CAU Kiel/SoSe 2019/Master Thesis/Code/master-thesis")
 source('myfun.R')
 source('dgp.R')
 ### Import and clean Data
@@ -161,7 +162,7 @@ print(alasso.lambda.min)
 # Therefore, optimization algorithms is very volatile and dependent on given initial value.
 # After the examination above, we will set initial value for optimization to a value close to min (0.01).
 # Reader can try and change the initial value below to see the volatility
-emp.scale <- TRUE
+emp.scale <- FALSE
 
 alasso.optim <- optim(par = alasso.lambda.min, 
                       function(a) fun.cv.lasso(y.1_12, x.1_12, 
@@ -175,11 +176,28 @@ print(alasso.optim$message)
 
 ## Getting to the real beef.
 
-cl <- parallel::makePSOCKcluster(detectCores() - 1)
+tic()
+cl <- parallel::makeCluster(8)
 # on.exit(parallel::stopCluster(cl), add = TRUE)
 envir <- environment(fun.lasso.predict)
 parallel::clusterExport(cl, varlist = ls(envir), envir = envir)
 parallel::setDefaultCluster(cl = cl)
+parallel::clusterEvalQ(cl, {library('readxl')
+library('zoo')
+library('glmnet')
+library('Matrix')
+library('tseries')
+library('caret')
+library('Matrix')
+library('corrplot')
+library('parallel')
+library('snow')
+library('MASS')
+library('tictoc')
+library('foreach')
+})
+
+toc()
 
 tic()
 par.alasso.result.10 <- parLapply(cl, horizon.setting,
@@ -250,3 +268,6 @@ rownames(emp.result.10) <- paste(horizon.setting)
 emp.result.15 <- data.frame(ols = ols.mspe.15, rwwd = rw.mspe.15,
                             alasso = alasso.mspe.15, lasso = lasso.mspe.15)
 rownames(emp.result.15) <- paste(horizon.setting)
+
+print(emp.result.10)
+print(emp.result.15)
