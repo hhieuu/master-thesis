@@ -311,19 +311,40 @@ rw.mspe.15 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par
 rw.mspe.20 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.rw.result.15[[i]]$mspe)
 
 
-### Displaying results
+#### Preparing results
+# window = 10
 emp.result.10 <- data.frame(ols = ols.mspe.10, rwwd = rw.mspe.10,
                             alasso = alasso.mspe.10, lasso = lasso.mspe.10)
 rownames(emp.result.10) <- paste(horizon.setting)
 
+emp.result.percent.10 <- data.frame(rel.ols = ols.mspe.10 / ols.mspe.10, rel.rwwd = rw.mspe.10 / ols.mspe.10,
+                                    rel.alasso = alasso.mspe.10 / ols.mspe.10, rel.lasso = lasso.mspe.10 / ols.mspe.10)
+rownames(emp.result.percent.10) <- paste(horizon.setting)
+# window = 15
 emp.result.15 <- data.frame(ols = ols.mspe.15, rwwd = rw.mspe.15,
                             alasso = alasso.mspe.15, lasso = lasso.mspe.15)
 rownames(emp.result.15) <- paste(horizon.setting)
 
+emp.result.percent.15 <- data.frame(rel.ols = ols.mspe.15 / ols.mspe.15, rel.rwwd = rw.mspe.15 / ols.mspe.15,
+                                    rel.alasso = alasso.mspe.15 / ols.mspe.15, rel.lasso = lasso.mspe.15 / ols.mspe.15)
+rownames(emp.result.percent.15) <- paste(horizon.setting)
+# window = 20
 emp.result.20 <- data.frame(ols = ols.mspe.20, rwwd = rw.mspe.20,
                             alasso = alasso.mspe.20, lasso = lasso.mspe.20)
 rownames(emp.result.20) <- paste(horizon.setting)
 
-print(emp.result.10)
-print(emp.result.15)
-print(emp.result.20)
+emp.result.percent.20 <- data.frame(rel.ols = ols.mspe.20 / ols.mspe.20, rel.rwwd = rw.mspe.20 / ols.mspe.20,
+                                    rel.alasso = alasso.mspe.20 / ols.mspe.20, rel.lasso = lasso.mspe.20 / ols.mspe.20)
+rownames(emp.result.percent.20) <- paste(horizon.setting)
+
+
+#### Printing results
+# Table 4: Estimated AR(1) coefficients
+print(ar1.coef.all)
+
+# Table 5: MPSE
+print(data.frame(emp.result.10, emp.result.percent.10))
+print(data.frame(emp.result.15, emp.result.percent.15))
+print(data.frame(emp.result.20, emp.result.percent.20))
+
+

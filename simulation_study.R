@@ -4,9 +4,10 @@ source('dgp.R')
 ## Number of different settings: n = 40, 80, 120, 200, 500, 1000
 ## Number of model for evaluation: OLS, Oracle OLS, AR, Lasso, and Adaptive Lasso
 ## Evaluation is carried out by computing Mean Squared Prediction Error
-## For each setting, the study is replicated 100 times. Final MSPE is the average of all MSPE in all replications
-## For Lasso and Alasso, lambda will be chosen by 10 fold cross validation in each replication at n = 200.
-## Then the final lambda would be the median of all MSPE-optimized lambda.
+## For each setting, the study is replicated 1000 times. Final MSPE is the average of all MSPE in all replications
+## For Lasso and Alasso, lambda will be chosen by 10 fold cross validation using a separate exploratory sample size n = 200 with 100 replication.
+## Then the final c_lambda would be the median of all MSPE-optimized c_lambda.
+## Takes about 2-3 hours to run
 
 ######################################################################################################
 ######################## DATA GENERATING PROCESS 2 - DEGENERACY IN THE LIMIT #########################
