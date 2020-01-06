@@ -78,10 +78,11 @@ fun.cv.lasso <- function(y, x, lambda, kf,
     } else {
       penalty <- NULL
     }
+    x.val <- matrix(x.val[1, ], nrow = 1)
     fit <- glmnet(x.train, y.train, nlambda = 50, standardize = FALSE)
-    y.hat <- predict.glmnet(fit, x.val, s = lambda, exact = TRUE, 
+    y.hat <- predict.glmnet(fit, matrix(x.val, nrow = 1), s = lambda, exact = TRUE, 
                             x = x.train, y = y.train)
-    mspe.mat[i] <- fun.mse(y.val, y.hat)
+    mspe.mat[i] <- fun.mse(y.val[1], y.hat)
   }
   return(mean(mspe.mat))
 }
@@ -108,7 +109,7 @@ fun.optim.lambda <- function(sample, start.val,
 }
 
 
-fun.fit.lasso.all <- function(data, c_lambda, 
+fun.fit.lasso.all <- function(data, c_lambda, lambda.seq = 1,
                               pen.factor = TRUE, pen.type = 'lm', 
                               scale = TRUE) {
   n.rep <- length(data) / 2
@@ -125,12 +126,15 @@ fun.fit.lasso.all <- function(data, c_lambda,
   
   # Lambda
   if (pen.factor) {
-    # lambda <- c_lambda * (setting * train.portion) ^ (1 / 2) / log(log(setting * train.portion))
+    # lambda <- c_lambda * (setting * train.portion) ^ (1 / 2) / log(log(setting * train.portion)) ^ (1 / 2)
+    lambda <- c_lambda * (setting * train.portion) ^ (1 / 2) / log(log(setting * train.portion)) 
     # lambda <- c_lambda * (setting * train.portion) ^ (1 / 2) / log(setting * train.portion)
     # lambda <- c_lambda * (setting * train.portion) ^ (1 / 2) / log(setting * train.portion) ^ 2
-    lambda <- c_lambda * (setting * train.portion) ^ (1 / 2) / log(setting * train.portion) ^ 3
+    # lambda <- c_lambda * (setting * train.portion) ^ (1 / 2) / log(setting * train.portion) ^ 3
   } else {
-    lambda <- c_lambda * (setting * train.portion) ^ (1 / 2)
+    # lambda <- c_lambda * (setting * train.portion) ^ (1 / 2)
+    # lambda <- c_lambda * (setting * train.portion) ^ (1 / 3)
+    lambda <- c_lambda * (setting * train.portion)
   }
   
   for (i in 1:n.rep) {
@@ -164,10 +168,11 @@ fun.fit.lasso.all <- function(data, c_lambda,
       penalty <- NULL
     }
     
+    x.test <- matrix(x.test[1, ], nrow = 1)
     fit <- glmnet(x.train, y.train, standardize = FALSE, nlambda = 50)
     y.hat <- predict.glmnet(fit, x.test, s = lambda, # / (setting * train.portion),
                             x = x.train, y = y.train, exact = TRUE)
-    mspe[i] <- fun.mse(y.hat, y.test)
+    mspe[i] <- fun.mse(y.hat, y.test[1])
     beta[i, ] <- coef(fit, x.test, s = lambda, # / (setting * train.portion), 
                       x = x.train, y = y.train, exact = TRUE)[- 1]
   }
@@ -207,16 +212,17 @@ fun.fit.ols.all <- function(data, scale = TRUE) {
   setting <- length(data[[1]])
   y.list <- data[seq(from = 1, to = length(data), by = 2)]
   x.list <- data[seq(from = 0, to = length(data), by = 2)]
+  p <- ncol(x.list[[1]])
   index <- fun.train.test.split(1:setting, test.portion = .1)
   fit.list <- list()
-  beta <- Matrix(0, nrow = n.rep, ncol = ncol(x.list[[1]]) + 1, sparse = T)
+  beta <- Matrix(0, nrow = n.rep, ncol = p + 1, sparse = T)
   mspe <- rep(0, n.rep)
   
   for (i in 1:n.rep) {
     x.train <- x.list[[i]][index$train, ]
     y.train <- y.list[[i]][index$train]
     y.test <- y.list[[i]][index$test]
-    x.test <- cbind(1, x.list[[i]][index$test, ])
+    x.test <- x.list[[i]][index$test, ]
     # Scale if applicable
     if (scale) {
       train.mean <- colMeans(x.train)
@@ -224,11 +230,13 @@ fun.fit.ols.all <- function(data, scale = TRUE) {
       x.train <- scale(x.train, TRUE, TRUE)
       x.test <- scale(x.test, train.mean, train.sd)
     }
+    x.test <- cbind(1, x.test)
+    x.test <- matrix(x.test[1, ], nrow = 1)
     
     fit <- lm(y.train ~ x.train)
     y.hat <- x.test %*% matrix(coef(fit))
     beta[i, ] <- matrix(fit$coefficients, nrow = 1)
-    mspe[i] <- fun.mse(y.test, y.hat)
+    mspe[i] <- fun.mse(y.test[1], y.hat)
   }
   return(list(mspe = mean(mspe), beta = beta))
 }
@@ -241,15 +249,16 @@ fun.fit.oracle.all <- function(data, beta.true,
   x.list <- data[seq(from = 0, to = length(data), by = 2)]
   index <- fun.train.test.split(1:setting, test.portion = .1)
   index.beta.true <- which(beta.true != 0)
+  p <- length(index.beta.true)
   fit.list <- list()
-  beta <- Matrix(0, nrow = n.rep, ncol = length(index.beta.true), sparse = T)
+  beta <- Matrix(0, nrow = n.rep, ncol = p, sparse = T)
   mspe <- rep(0, n.rep)
   
   for (i in 1:n.rep) {
     x.train <- x.list[[i]][index$train, index.beta.true]
     y.train <- y.list[[i]][index$train]
     y.test <- y.list[[i]][index$test]
-    x.test <- cbind(1, x.list[[i]][index$test, index.beta.true])
+    x.test <- x.list[[i]][index$test, index.beta.true]
     # Scale if applicable
     if (scale) {
       train.mean <- colMeans(x.train)
@@ -257,36 +266,16 @@ fun.fit.oracle.all <- function(data, beta.true,
       x.train <- scale(x.train, TRUE, TRUE)
       x.test <- scale(x.test, train.mean, train.sd)
     }
+    x.test <- cbind(1, x.test)
+    x.test <- matrix(x.test[1, ], nrow = 1)
     
     fit <- lm(y.train ~ x.train)
     y.hat <- x.test %*% matrix(coef(fit))
     beta[i, ] <- matrix(fit$coefficients[- 1], nrow = 1)
-    mspe[i] <- fun.mse(y.test, y.hat)
+    mspe[i] <- fun.mse(y.test[1], y.hat)
   }
   return(list(mspe = mean(mspe), beta = beta))
 }
-
-#### AR functions ----
-fun.fit.ar.all <- function(data, horizon = 1) {
-  n.rep <- length(data) / 2
-  setting <- length(data[[1]])
-  y.list <- data[seq(from = 1, to = length(data), by = 2)]
-  index <- fun.train.test.split(1:setting, test.portion = .2)
-  fit.list <- list()
-  mspe <- rep(0, n.rep)
-  order <- rep(0, n.rep)
-  
-  for (i in 1:n.rep) {
-    y.train <- y.list[[i]][index$train]
-    y.test <- y.list[[i]][index$test][1:horizon]
-    fit <- ar(y.train)
-    y.hat <- predict(fit, n.ahead = horizon)$pred
-    order[i] <- fit$order
-    mspe[i] <- fun.mse(y.test, y.hat)
-  }
-  return(list(mspe = mean(mspe), order = mean(order)))
-}
-
 
 #### Empirical functions ----
 
@@ -312,7 +301,7 @@ fun.lasso.predict <- function(y, x, pen.factor = TRUE, pen.type = 'ridge',
                                                   pen.factor = pen.factor, pen.type = pen.type,
                                                   scale = scale))
     lambda.start <- seq(from = 0.0001, to = 0.3, length.out = 30)[which.min(lambda.seq)]
-    lambda.optim <- optim(par = lambda.start, function(s) fun.cv.lasso(y.train, x.train, lambda = s, kf = 5,
+    lambda.optim <- optim(par = lambda.start, function(s) fun.cv.lasso(y.train, x.train, lambda = s, kf = 5, scale = scale,
                                                                        pen.factor = pen.factor, pen.type = pen.type),
                           method = "L-BFGS-B", lower = 1e-4)$par
     
@@ -366,7 +355,7 @@ fun.ols.emp <- function(y, x, window = 10, horizon = 1,
   ## Performing OLS
   for (i in 1:n.test) {
     x.train <- x[index.roll$train[[i]], ]
-    x.test <- cbind(1, matrix(x[index.roll$test[[i]], ], nrow = horizon))
+    x.test <- matrix(x[index.roll$test[[i]], ], nrow = horizon)
     y.train <- y[index.roll$train[[i]]]
     y.test <- y[index.roll$test[[i]]]
     # Scale if applicable
@@ -377,6 +366,7 @@ fun.ols.emp <- function(y, x, window = 10, horizon = 1,
       x.test <- scale(x.test, center = train.mean, scale = train.sd)
     }
     # Fit OLS
+    x.test <- cbind(1, x.test)
     fit <- lm(y.train ~ x.train)
     index.na <- which(is.na(coef(fit)))
     y.hat <- x.test[, - index.na] %*% matrix(coef(fit))[- index.na, ]

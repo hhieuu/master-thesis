@@ -1,5 +1,4 @@
-#### Main working file
-# ## Package installation
+### Package installation
 install.packages('readxl')
 install.packages('zoo')
 install.packages('glmnet')
@@ -10,8 +9,12 @@ install.packages('corrplot')
 install.packages('snow')
 install.packages('foreach')
 install.packages('tictoc')
+install.packages('VIF')
+install.packages('tikzDevice')
+install.packages('gridExtra')
+install.packages('dplyr')
 
-# ## Call packages
+### Call packages
 library('readxl')
 library('zoo')
 library('glmnet')
@@ -25,9 +28,14 @@ library('snow')
 library('MASS')
 library('tictoc')
 library('foreach')
+library('VIF')
+library('ggplot2')
+library('tikzDevice')
+library('gridExtra')
+library('dplyr')
 
 ### Functions:
-setwd("D:/Study Materials/Master in Quantitative Economics - CAU Kiel/SoSe 2019/Master Thesis/Code/master-thesis")
+## Please set working directory to the location of this file before running
 source('myfun.R')
 source('dgp.R')
 ### Import and clean Data
@@ -58,18 +66,18 @@ var.dy <- log(data$D12) - log(c(data$Index[-1], data$Index[n.obs])) # d/y ratio
 var.ep <- log(data$E12) - log(data$Index) # e/p ratio
 var.de <- log(data$D12) - log(data$E12) # d/e ratio
 var.svar <- data$svar # stock variance
-var.csp <- data$csp # cross-sectional premium
+# var.csp <- data$csp # cross-sectional premium, not included, insufficient sample size
 var.bm <- data$`b/m` # book to market ratio
 var.ntis <- data$ntis # net equity expansion
-# var.eqis # percent equity issuing
-var.tbl <- data$tbl # treasury bill/T-bill rate from 1920 to 1933
-var.lty <- data$lty # long term government bond yield, 1919 to 1925
-var.ltr <- data$ltr # long term government bond return, 1926 to 2005
+# var.eqis # percent equity issuing # not included, insufficient sample size
+var.tbl <- data$tbl # treasury bill/T-bill rate
+var.lty <- data$lty # long term government bond yield
+var.ltr <- data$ltr # long term government bond return
 var.tms <- var.lty - var.tbl # term spread
 var.dfy <- data$BAA - data$AAA # default yield spread
 var.dfr <- data$corpr - data$ltr # default return spread
-var.infl <- data$infl # inflation from Consumer Price Index, 1919 to 2005
-# var.ik # 
+var.infl <- data$infl # inflation from Consumer Price Index
+
 var.all <- cbind(var.dp, var.dy, var.ep, var.de, var.svar, var.bm, var.ntis, var.tbl,
                         var.lty, var.ltr, var.tms, var.dfy, var.dfr, var.infl) # design matrix of all regressors
 var.all.lag <- var.all[- 1, ]
@@ -77,33 +85,41 @@ var.all.lag <- var.all[- 1, ]
 ## Testing for stationarity/cointegration using ADF test
 adf.pval.premium <- adf.test(var.premium, 'stationary', k = 1)
 adf.pval.all <- apply(var.all, 2, function(x) adf.test(x, 'stationary', k = 1)$p.value)
-# --> Test result is quite promising, as the null of unit root is rejected in 12/14 variables at 5%
+ar1.coef.all <- apply(var.all, 2, function(x) ar(x, order.max = 1)$ar)
+ar1.coef.premium <- ar(var.premium, order.max = 1)$ar
+# Print results
+print(adf.pval.all)
+print(ar1.coef.all)
+print(ar1.coef.premium)
+# --> Test result is quite promising, as the null of unit root is rejected in 12/14 variables at 5%, and premium is stationary
 adf.test(diff(var.tbl))
 adf.test(diff(var.lty))
-
 # Testing 1st difference of these 2 non-stationary time series confirms that both are of I(1)
 # We will now also test for cointegration between the two: var.tbl and var.lty
-adf.test(lm(var.tbl ~ var.lty)$residuals)
+adf.test(lm(var.tbl ~ var.lty)$residuals, k = 1)
 # Residual series generated from simple regression between 2 var is stationary, implying cointegration property
 
 ## Detecting collinearity
-fit.ols <- lm(var.premium ~ var.all.lag)
+fit.ols <- lm(var.premium ~ var.all.lag, singular.ok = TRUE)
 summary(fit.ols)
 # -> as expected from variable construction, var.de and var.tms is perfectly collinear with other variables
-# -> some other variables exhibit high correlation as well, demonstrated in correlogram:
-corrplot(cor(var.all), 'number')
-# This will, together with LASSO's problems, further invalidate 'standard' inference
-
-## Fitting every series with AR(1) model
-fit.ar.coef <- rep(NA, times = ncol(var.all))
-for (i in 1:ncol(var.all)){
-  fit.ar.coef[i] <- ar(var.all[ , i], order.max = 1)$ar
+# We will try to compute VIF
+var.all.vif.score <- foreach(i = 1:ncol(var.all), .combine = 'c') %do% {
+  1 / (1 - summary(lm(var.all[, i] ~ var.all[, - i]))$r.squared)
 }
+print(var.all.vif.score)
 
+# Compute eigenvalue and trace of design matrix C_n
+C_n <- 1 / length(var.premium) * t(var.all) %*% var.all
+var.all.eig <- eigen(C_n, only.values = TRUE)$values
+print(min(abs(var.all.eig)))
+print(sum(diag(C_n)))
+# --> near-singularity detected
 
-### Performing LASSO
+### Performing LASSO/ALASSO
 ## Prepare and scale variables for each settings
-## DEBUGGING PART. PLEASE REFER TO TEST FILE
+## DEBUGGING PART. PLEASE REFER TO TEST FILE. 
+## RUN THE TEST FILE BEFORE RUNNING THIS TO SEE THE PROBLEMS WITH DATA
 var.all.lag[186:245, 8]
 tbl.alt<- rep(NA, 60)
 for (i in 60:1){
@@ -112,11 +128,10 @@ for (i in 60:1){
 var.all.lag[186:245, 8] <- rev(tbl.alt)
 ## END
 
+# Prepare data (transform horizons) for estimation
 y <- var.premium
 n <- length(y)
 y.1_12 <- var.premium
-# y.1_12 <- var.premium[480:n] # 50 latest years
-# y.1_12 <- var.premium[1:160]
 y.1_4 <- fun.horizon.transform(y.1_12, 1/4)
 y.1_2 <- fun.horizon.transform(y.1_12, 1/2)
 y.1 <- fun.horizon.transform(y.1_12, 1)
@@ -125,14 +140,12 @@ y.3 <- fun.horizon.transform(y.1_12, 3)
 
 x <- var.all.lag
 x.1_12 <- var.all.lag
-# x.1_12 <- scale(var.all.lag, TRUE, TRUE)[480:n, ] # 50 latest years
-# x.1_12 <- scale(var.all.lag, TRUE, TRUE)[1:160, ]
+
 x.1_4 <- x.1_12[1:length(y.1_4), ]
 x.1_2 <- x.1_12[1:length(y.1_2), ]
 x.1 <- x.1_12[1:length(y.1), ]
 x.2 <- x.1_12[1:length(y.2), ]
 x.3 <- x.1_12[1:length(y.3), ]
-
 
 horizon.setting <- c('1_12', '1_4', '1_2', '1', '2', '3')
 
@@ -142,6 +155,7 @@ horizon.setting <- c('1_12', '1_4', '1_2', '1', '2', '3')
 #   of non-regularized least square estimates in singular design with lambda near zero (Knight and Fu, 2000).
 # Test ridge fit
 
+coefficients(lm(y ~ x))
 fit.ridge <- glmnet(x, y, alpha = 0)
 coef.ridge <- coef(fit.ridge, s = 1e-10, exact = TRUE, x = x, y = y)[- 1] # omitting intercept
 coef.ridge
@@ -150,39 +164,45 @@ coef.ridge
 ## Next we will use 10-fold rolling windows cross-validation to find optimal initial value of lambda for our problem at hand.
 # As a first step, we will try to examine the path of cv.mspe given lambda path.
 
+emp.scale <- FALSE # set scaling to FALSE
+
 tic()
-alasso.optim.mse <- sapply(seq(from = 0.0001, to = 0.5, length.out = 100), 
-                           function(s) fun.cv.lasso(y.1_12, x.1_12, kf = 5, lambda = s, pen.factor = TRUE, pen.type = 'ridge'))
-alasso.lambda.min <- seq(from = 0.0001, to = 0.5, length.out = 100)[which.min(alasso.optim.mse)]
-plot(seq(from = 0.0001, to = 0.5, length.out = 100), alasso.optim.mse, type = 'l')
+alasso.optim.mse <- sapply(seq(from = 0.0001, to = 0.5, length.out = 200), 
+                           function(s) fun.cv.lasso(y.1, x.1, kf = 5, lambda = s, pen.factor = TRUE, pen.type = 'ridge', scale = emp.scale))
+alasso.lambda.min <- seq(from = 0.0001, to = 0.5, length.out = 200)[which.min(alasso.optim.mse)]
+plot(seq(from = 0.0001, to = 0.5, length.out = 200), alasso.optim.mse, type = 'l')
 which.min(alasso.optim.mse)
 print(alasso.lambda.min)
+toc()
 
 # As we can see, the mspe is decreasing very fast with increasing lambda and stay flat after certain values (of lambda)
 # Therefore, optimization algorithms is very volatile and dependent on given initial value.
 # After the examination above, we will set initial value for optimization to a value close to min (0.01).
 # Reader can try and change the initial value below to see the volatility
-emp.scale <- FALSE
+
 
 alasso.optim <- optim(par = alasso.lambda.min, 
-                      function(a) fun.cv.lasso(y.1_12, x.1_12, 
+                      function(a) fun.cv.lasso(y.1, x.1, 
                                                kf = 5, lambda = a, 
                                                pen.factor = TRUE, pen.type = 'ridge',
                                                scale = emp.scale),
                       method = "L-BFGS-B", lower = 0.0001)
-toc()
+# toc()
 print(alasso.optim$par)
 print(alasso.optim$message)
 
-## Getting to the real beef.
+## Getting to the real beef. Here, parallel computing is used to speen up the execution of codes
 
 tic()
-cl <- parallel::makeCluster(8)
-# on.exit(parallel::stopCluster(cl), add = TRUE)
+cl <- parallel::makeCluster(6) # default is 6 because there are 6 horizon setting that we want to run in parallel 
+parallel::setDefaultCluster(cl = cl)
+
+# exporting variables and packages to all nodes
 envir <- environment(fun.lasso.predict)
 parallel::clusterExport(cl, varlist = ls(envir), envir = envir)
-parallel::setDefaultCluster(cl = cl)
-parallel::clusterEvalQ(cl, {library('readxl')
+
+parallel::clusterEvalQ(cl, { 
+library('readxl')
 library('zoo')
 library('glmnet')
 library('Matrix')
@@ -199,6 +219,8 @@ library('foreach')
 
 toc()
 
+#### Start execution.
+#### WARNING: This takes very long to complete: around 8 hours for 6 clusters running in parallel
 tic()
 par.alasso.result.10 <- parLapply(cl, horizon.setting,
                                function(a) fun.lasso.predict(get(paste('y.', a, sep = '')), get(paste('x.', a, sep = '')),
@@ -226,12 +248,31 @@ par.lasso.result.15 <- parLapply(cl, horizon.setting,
                                                                pen.factor = FALSE, window = 15,
                                                                scale = emp.scale))
 toc()
-stopCluster(cl)
 
+tic()
+par.alasso.result.20 <- parLapply(cl, horizon.setting,
+                                  function(a) fun.lasso.predict(get(paste('y.', a, sep = '')), get(paste('x.', a, sep = '')),
+                                                                pen.factor = TRUE, pen.type = 'ridge', window = 20,
+                                                                scale = emp.scale))
+toc()
+
+tic()
+par.lasso.result.20 <- parLapply(cl, horizon.setting,
+                                 function(a) fun.lasso.predict(get(paste('y.', a, sep = '')), get(paste('x.', a, sep = '')),
+                                                               pen.factor = FALSE, window = 20,
+                                                               scale = emp.scale))
+toc()
+stopCluster(cl) # closing nodes
+
+## Fetching neccesary resultsL MPSE
 alasso.mspe.10 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.alasso.result.10[[i]]$mspe)
 lasso.mspe.10 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.lasso.result.10[[i]]$mspe)
 alasso.mspe.15 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.alasso.result.15[[i]]$mspe)
 lasso.mspe.15 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.lasso.result.15[[i]]$mspe)
+alasso.mspe.20 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.alasso.result.20[[i]]$mspe)
+lasso.mspe.20 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.lasso.result.20[[i]]$mspe)
+
+
 
 alasso.sel.rate.10 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.alasso.result.10[[i]]$mspe)
 
@@ -247,8 +288,14 @@ par.ols.result.15 <- lapply(horizon.setting,
                             function(a) fun.ols.emp(get(paste('y.', a, sep = '')), get(paste('x.', a, sep = '')),
                                                     window = 15, horizon = 1,
                                                     scale = emp.scale))
+par.ols.result.20 <- lapply(horizon.setting, 
+                            function(a) fun.ols.emp(get(paste('y.', a, sep = '')), get(paste('x.', a, sep = '')),
+                                                    window = 20, horizon = 1,
+                                                    scale = emp.scale))
+
 ols.mspe.10 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.ols.result.10[[i]]$mspe)
 ols.mspe.15 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.ols.result.15[[i]]$mspe)
+ols.mspe.20 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.ols.result.20[[i]]$mspe)
 
 ### Performing RWwD
 
@@ -256,8 +303,12 @@ par.rw.result.10 <- lapply(horizon.setting,
                            function(a) fun.rw.emp(get(paste('y.', a, sep = '')), window = 10, horizon = 1))
 par.rw.result.15 <- lapply(horizon.setting, 
                            function(a) fun.rw.emp(get(paste('y.', a, sep = '')), window = 15, horizon = 1))
+par.rw.result.20 <- lapply(horizon.setting, 
+                           function(a) fun.rw.emp(get(paste('y.', a, sep = '')), window = 20, horizon = 1))
+
 rw.mspe.10 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.rw.result.10[[i]]$mspe)
 rw.mspe.15 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.rw.result.15[[i]]$mspe)
+rw.mspe.20 <- foreach(i = 1:length(horizon.setting), .combine = c) %do% mean(par.rw.result.15[[i]]$mspe)
 
 
 ### Displaying results
@@ -269,5 +320,10 @@ emp.result.15 <- data.frame(ols = ols.mspe.15, rwwd = rw.mspe.15,
                             alasso = alasso.mspe.15, lasso = lasso.mspe.15)
 rownames(emp.result.15) <- paste(horizon.setting)
 
+emp.result.20 <- data.frame(ols = ols.mspe.20, rwwd = rw.mspe.20,
+                            alasso = alasso.mspe.20, lasso = lasso.mspe.20)
+rownames(emp.result.20) <- paste(horizon.setting)
+
 print(emp.result.10)
 print(emp.result.15)
+print(emp.result.20)
