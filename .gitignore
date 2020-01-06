@@ -13,7 +13,9 @@
 **/*.toc
 **/*.pdf
 **/*.synctex.gz
+old/
+latex/
 !prediction_graph.pdf
 !selection_graph.pdf
 !selection_graph_h1-2.pdf
-old/
+!Hieu-Hoang_Master-Thesis.pdf
